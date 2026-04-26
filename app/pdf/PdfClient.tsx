@@ -12,6 +12,7 @@ interface CalcData {
   startDate: string
   stopDate: string
   paymentType: string
+  purchaseType: 'regular' | 'discounted'
   usedDays: number
   usedFee: number
   penalty: number
@@ -22,6 +23,7 @@ interface CalcData {
 interface FormData {
   name: string
   phone: string
+  myAddress: string
   gymName: string
   gymAddress: string
   staffName: string
@@ -97,7 +99,7 @@ function addDays(iso: string, days: number) {
 export default function PdfClient({ calc }: { calc: CalcData }) {
   const [step, setStep] = useState<'form' | 'preview'>('form')
   const [form, setForm] = useState<FormData>({
-    name: '', phone: '', gymName: '', gymAddress: '',
+    name: '', phone: '', myAddress: '', gymName: '', gymAddress: '',
     staffName: '', bankAccount: '', deadline: '7',
   })
   const [errors, setErrors] = useState<FormErrors>({})
@@ -149,6 +151,14 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
       <div className="flex flex-col gap-5">
         <Field label="신청인 이름" id="name" value={form.name} onChange={set('name')} placeholder="홍길동" error={errors.name} required />
         <Field label="연락처" id="phone" value={form.phone} onChange={set('phone')} placeholder="010-0000-0000" inputMode="tel" error={errors.phone} required />
+        <Field
+          label="신청인 주소 (선택)"
+          id="myAddress"
+          value={form.myAddress}
+          onChange={set('myAddress')}
+          placeholder="서울시 강남구 ..."
+          hint="우체국 내용증명으로 발송할 경우 필요합니다"
+        />
         <Field label="업체명" id="gymName" value={form.gymName} onChange={set('gymName')} placeholder="○○헬스장" error={errors.gymName} required />
         <Field label="업체 주소" id="gymAddress" value={form.gymAddress} onChange={set('gymAddress')} placeholder="서울시 강남구 ..." error={errors.gymAddress} required />
         <Field label="담당자 / 대표자 이름 (선택)" id="staffName" value={form.staffName} onChange={set('staffName')} placeholder="없으면 비워두세요" />
@@ -291,15 +301,16 @@ function Preview({
       <div className="print:hidden flex flex-col min-h-screen px-5 pb-40">
         <div className="pt-6 mb-4">
           <h1 className="text-xl font-bold text-gray-900">청구서 미리보기</h1>
-          <p className="mt-1 text-sm text-gray-500">인쇄 또는 PDF 저장 후 업체에 전달하세요</p>
+          <p className="mt-1 text-sm text-gray-500">PDF를 저장해 카카오톡으로 전송하거나 직접 전달하세요</p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-2">
           <DocumentContent calc={calc} form={form} today={today} todayIso={todayIso} />
         </div>
 
-        <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700 mb-32 leading-5">
-          💡 법적 효력 강화를 위해 <strong>인터넷우체국(epost.go.kr)</strong>에서 내용증명 우편으로 발송하시기를 권장합니다.
+        <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700 mb-32 leading-5 space-y-1.5">
+          <p>💬 <strong>카카오톡 전송 추천</strong> — 읽음 표시가 발송 증거가 됩니다. 스크린샷을 저장해두세요.</p>
+          <p>📮 우체국 내용증명으로 발송하려면 <strong>인터넷우체국(epost.go.kr)</strong>을 이용하세요. 신청인 주소를 미리 입력해두면 편리합니다.</p>
         </div>
 
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent flex flex-col gap-2">
@@ -380,7 +391,10 @@ function DocumentContent({
           </tr>
           <tr className="border-b border-gray-200">
             <td className="px-3 py-2 bg-gray-50 font-bold text-gray-600">발&nbsp;&nbsp;&nbsp;신</td>
-            <td className="px-3 py-2">{form.name}&nbsp;&nbsp;|&nbsp;&nbsp;연락처: {form.phone}</td>
+            <td className="px-3 py-2">
+              {form.name}&nbsp;&nbsp;|&nbsp;&nbsp;연락처: {form.phone}
+              {form.myAddress && <span className="block text-gray-500">주소: {form.myAddress}</span>}
+            </td>
           </tr>
           <tr className="border-b border-gray-200">
             <td className="px-3 py-2 bg-gray-50 font-bold text-gray-600">작 성 일</td>
@@ -415,6 +429,11 @@ function DocumentContent({
       {/* 2. 환불 청구 금액 */}
       <DocSection num="2" title="환불 청구 금액 계산">
         <div className="px-3 py-3 text-xs leading-7">
+        {calc.purchaseType === 'discounted' && (
+          <p className="text-[10px] text-emerald-700 bg-emerald-50 rounded px-2 py-1 mb-2">
+            ※ 공정거래위원회 고시 소비자분쟁해결기준에 따라 실 납부액 기준으로 계산합니다.
+          </p>
+        )}
           <div className="flex justify-between border-b border-gray-100 pb-1">
             <span className="text-gray-600">① 납부 금액</span>
             <span className="font-semibold">{fmt(calc.contractAmount)}원</span>

@@ -51,6 +51,7 @@ export default function FormPage() {
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
   })
   const [paymentType, setPaymentType] = useState<PaymentType>('신용카드 일시불')
+  const [purchaseType, setPurchaseType] = useState<'regular' | 'discounted'>('regular')
   const [refundReason, setRefundReason] = useState<RefundReason | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
 
@@ -70,6 +71,7 @@ export default function FormPage() {
       startDate,
       stopDate,
       paymentType,
+      purchaseType,
       refundReason: refundReason!,
     })
     router.push(`/result?${params.toString()}`)
@@ -137,6 +139,39 @@ export default function FormPage() {
         />
 
         <PaymentChips value={paymentType} onChange={setPaymentType} />
+
+        {/* 구매 방식 */}
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-semibold text-gray-800">구매 방식</span>
+          <div className="flex gap-2">
+            {([
+              { value: 'regular', label: '정상가 구매', sub: '할인 없음' },
+              { value: 'discounted', label: '할인가 구매', sub: '이벤트·프로모션' },
+            ] as const).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setPurchaseType(opt.value)}
+                className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-colors ${
+                  purchaseType === opt.value
+                    ? 'border-[#2563EB] bg-blue-50'
+                    : 'border-gray-200 bg-white'
+                }`}
+              >
+                <span className={`text-sm font-semibold ${purchaseType === opt.value ? 'text-[#2563EB]' : 'text-gray-800'}`}>
+                  {opt.label}
+                </span>
+                <span className="text-xs text-gray-400 mt-0.5">{opt.sub}</span>
+              </button>
+            ))}
+          </div>
+          {purchaseType === 'discounted' && (
+            <p className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 leading-5">
+              공정위 기준으로 <strong>실 납부액</strong> 기준으로 계산됩니다.
+              헬스장이 정상가 기준을 주장하더라도 공정위 소비자분쟁해결기준이 우선합니다.
+            </p>
+          )}
+        </div>
 
         <RefundReasonChips
           value={refundReason}

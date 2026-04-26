@@ -25,6 +25,7 @@ export default async function ResultPage({
   const startDate = String(params.startDate ?? '')
   const stopDate = String(params.stopDate ?? '')
   const paymentType = String(params.paymentType ?? '')
+  const purchaseType = (params.purchaseType === 'discounted' ? 'discounted' : 'regular') as 'regular' | 'discounted'
   const refundReason = (params.refundReason ?? 'user_cancel') as RefundReason
 
   if (!contractAmount || !monthlyFee || !startDate || !stopDate) {
@@ -47,7 +48,7 @@ export default async function ResultPage({
     <ResultClient
       result={{
         contractAmount, monthlyFee, startDate, stopDate,
-        usedDays, usedFee, penalty, refund, paymentType, refundReason,
+        usedDays, usedFee, penalty, refund, paymentType, purchaseType, refundReason,
       }}
     />
   )

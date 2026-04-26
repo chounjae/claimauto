@@ -17,6 +17,7 @@ interface CalcResult {
   penalty: number
   refund: number
   paymentType: string
+  purchaseType: 'regular' | 'discounted'
   refundReason?: RefundReason
 }
 
@@ -46,6 +47,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
     startDate: result.startDate,
     stopDate: result.stopDate,
     paymentType: result.paymentType,
+    purchaseType: result.purchaseType,
     usedDays: String(result.usedDays),
     usedFee: String(result.usedFee),
     penalty: String(result.penalty),
@@ -72,6 +74,14 @@ export default function ResultClient({ result }: { result: CalcResult }) {
         </p>
         <p className="mt-2 text-xs opacity-70">공정거래위원회 고시 제56조 기준</p>
       </div>
+
+      {/* 할인 구매 안내 */}
+      {result.purchaseType === 'discounted' && (
+        <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-xs text-emerald-800 leading-5">
+          <p className="font-semibold mb-0.5">공정위 기준: 실납부액 기준 계산</p>
+          <p>할인가로 구매한 경우에도 <strong>실제 납부한 금액</strong>을 기준으로 기이용료를 계산합니다. 헬스장이 정상가 기준을 주장하는 것은 공정거래위원회 소비자분쟁해결기준에 위배됩니다.</p>
+        </div>
+      )}
 
       {/* 계산 내역 */}
       <section className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-4">

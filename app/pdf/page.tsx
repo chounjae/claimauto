@@ -18,6 +18,7 @@ export default async function PdfPage({
   const refund = Number(p.refund)
   type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
   const refundReason = String(p.refundReason ?? 'user_cancel') as RefundReason
+  const purchaseType = (p.purchaseType === 'discounted' ? 'discounted' : 'regular') as 'regular' | 'discounted'
 
   if (!contractAmount || !startDate || !stopDate) {
     return (
@@ -32,7 +33,7 @@ export default async function PdfPage({
 
   return (
     <PdfClient
-      calc={{ contractAmount, monthlyFee, startDate, stopDate, paymentType, usedDays, usedFee, penalty, refund, refundReason }}
+      calc={{ contractAmount, monthlyFee, startDate, stopDate, paymentType, purchaseType, usedDays, usedFee, penalty, refund, refundReason }}
     />
   )
 }
