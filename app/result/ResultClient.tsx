@@ -5,7 +5,7 @@ import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 import CountUp from '@/components/CountUp'
 
-type RefundReason = 'closure' | 'business_fault' | 'injury' | 'pregnancy' | 'relocation' | 'user_cancel'
+type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
 interface CalcResult {
   contractAmount: number
@@ -22,14 +22,18 @@ interface CalcResult {
 
 const REASON_LABEL: Record<RefundReason, string> = {
   closure: '헬스장 폐업',
-  business_fault: '사업자 귀책 기타 (시설 불량 등)',
+  facility_defect: '시설 훼손 / 기구 고장·철거',
+  service_reduction: '운영시간·서비스 축소',
+  gym_relocation: '헬스장 이전 (접근 불가)',
+  price_increase: '약정 외 요금 인상',
   injury: '부상 / 질병',
   pregnancy: '임신 / 출산',
-  relocation: '이사 / 이직',
+  relocation: '이사 (주거지 이전)',
+  job_change: '이직 / 직장 이전',
   user_cancel: '단순 변심',
 }
 
-const PERSONAL_REASONS = new Set<RefundReason>(['injury', 'pregnancy', 'relocation', 'user_cancel'])
+const PERSONAL_REASONS = new Set<RefundReason>(['injury', 'pregnancy', 'relocation', 'job_change', 'user_cancel'])
 
 export default function ResultClient({ result }: { result: CalcResult }) {
   const fmt = (n: number) => n.toLocaleString()

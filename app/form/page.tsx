@@ -46,7 +46,10 @@ export default function FormPage() {
   const [totalAmount, setTotalAmount] = useState('')
   const [months, setMonths] = useState<number | null>(null)
   const [startDate, setStartDate] = useState('')
-  const [stopDate, setStopDate] = useState('')
+  const [stopDate, setStopDate] = useState(() => {
+    const t = new Date()
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+  })
   const [paymentType, setPaymentType] = useState<PaymentType>('신용카드 일시불')
   const [refundReason, setRefundReason] = useState<RefundReason | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -127,7 +130,7 @@ export default function FormPage() {
         {/* 환불 요청일 */}
         <DatePicker
           label="환불 요청일 / 폐업 확인일"
-          hint="환불을 요청한 날짜 또는 폐업을 확인한 날짜"
+          hint="오늘 날짜로 자동 설정됩니다. 다른 날짜면 변경하세요"
           value={stopDate}
           onChange={setStopDate}
           error={errors.stopDate}

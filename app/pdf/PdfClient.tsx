@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 
-type RefundReason = 'closure' | 'business_fault' | 'injury' | 'pregnancy' | 'relocation' | 'user_cancel'
+type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
 interface CalcData {
   contractAmount: number
@@ -38,26 +38,38 @@ interface FormErrors {
 
 const REASON_LABEL: Record<RefundReason, string> = {
   closure: '헬스장 폐업',
-  business_fault: '사업자 귀책 기타 (시설 불량 등)',
+  facility_defect: '시설 훼손 / 기구 고장·철거',
+  service_reduction: '운영시간·서비스 축소',
+  gym_relocation: '헬스장 이전 (접근 불가)',
+  price_increase: '약정 외 요금 인상',
   injury: '부상 / 질병',
   pregnancy: '임신 / 출산',
-  relocation: '이사 / 이직',
+  relocation: '이사 (주거지 이전)',
+  job_change: '이직 / 직장 이전',
   user_cancel: '단순 변심',
 }
 
 const REASON_BODY: Record<RefundReason, string> = {
   closure:
-    '귀 업체가 폐업하여 계약상 서비스를 더 이상 제공받을 수 없게 되었습니다. 이는 사업자 귀책 사유에 해당하므로, 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 위약금 없이 잔여 이용료 전액의 환불을 청구합니다.',
-  business_fault:
-    '계약 당시 약정한 시설·서비스 수준이 유지되지 않아 계약 목적 달성이 곤란한 상태입니다. 이는 사업자 귀책 사유에 해당하며, 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 위약금 없이 잔여 이용료 전액의 환불을 청구합니다.',
+    '귀 업체가 폐업하여 계약 서비스를 더 이상 이용할 수 없게 되었습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+  facility_defect:
+    '약정 시설의 훼손 또는 주요 기구의 고장·철거로 인해 계약 목적 달성이 어렵습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+  service_reduction:
+    '계약 당시 약정된 운영시간이나 서비스 수준이 변경되어 정상적인 이용이 어렵습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+  gym_relocation:
+    '헬스장의 이전으로 인해 동일한 방식의 이용이 어렵게 되었습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+  price_increase:
+    '계약 당시 약정되지 않은 요금 인상이 이루어져 계약 조건이 변경되었습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
   injury:
-    '부상 및 질병으로 인하여 헬스장 이용이 불가능하여 중도해지를 요청합니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조는 소비자 사정에 의한 중도해지 시 위약금(납부액의 10% 이내)을 공제한 잔액 환불을 규정하며, 부상·질병에 대한 위약금 별도 면제 조항은 없습니다. 따라서 동 기준에 따라 기이용료 및 위약금을 공제한 잔액의 환불을 청구합니다.',
+    '부상·질병으로 인해 헬스장 이용이 어려워 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
   pregnancy:
-    '임신·출산으로 인하여 헬스장 이용이 불가능하여 중도해지를 요청합니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료 및 위약금(납부액의 10% 이내)을 공제한 잔액의 환불을 청구합니다.',
+    '임신·출산으로 인해 헬스장 이용이 어려워 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
   relocation:
-    '이사·이직으로 인하여 헬스장 이용이 현실적으로 불가능하여 중도해지를 요청합니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료 및 위약금(납부액의 10% 이내)을 공제한 잔액의 환불을 청구합니다.',
+    '이사로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
+  job_change:
+    '이직·직장 이전으로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
   user_cancel:
-    '개인 사정으로 인해 계약 기간 만료 전 중도해지를 희망합니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료 및 위약금(납부액의 10% 이내)을 공제한 잔액의 환불을 청구합니다.',
+    '개인 사정으로 인해 계약 기간 중 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
 }
 
 function validate(f: FormData): FormErrors {
@@ -267,7 +279,7 @@ function Preview({
       lines.push(`입금 계좌: ${form.bankAccount}`)
     }
 
-    lines.push('', '미이행 시 소비자원 신고 및 소액심판 청구 절차를 진행할 예정입니다.')
+    lines.push('', '원만한 처리 부탁드립니다. 금액이나 처리 방법에 이견이 있으시면 편하게 연락 주세요. 감사합니다.')
 
     await navigator.clipboard.writeText(lines.join('\n'))
     setCopied(true)
@@ -298,6 +310,9 @@ function Preview({
           >
             PDF 저장 / 인쇄
           </button>
+          <p className="text-center text-[11px] text-gray-400 -mt-1">
+            iPhone: 인쇄 화면에서 공유(□↑) 탭 → PDF로 내보내기
+          </p>
           <button
             type="button"
             onClick={copyKakaoMessage}
@@ -348,9 +363,9 @@ function DocumentContent({
 
       {/* 문서 제목 */}
       <div className="text-center mb-6 pb-5 border-b-2 border-gray-900">
-        <h1 className="text-xl font-extrabold tracking-tight">환불 청구서 (내용증명)</h1>
+        <h1 className="text-xl font-extrabold tracking-tight">헬스장 이용계약 환불 요청서</h1>
         <p className="mt-1 text-xs text-gray-500">
-          공정거래위원회 고시 소비자분쟁해결기준 제56조(체육시설업) 근거
+          소비자분쟁해결기준 제56조(체육시설업) 기준 산정
         </p>
       </div>
 
@@ -380,9 +395,9 @@ function DocumentContent({
 
       {/* 인사 + 사유 */}
       <p className="text-xs text-gray-700 mb-5 leading-6">
-        본 청구인은 귀 업체와 아래와 같이 헬스장 이용계약을 체결한 바,{' '}
+        안녕하세요. 저는 귀 업체의 헬스장 이용계약 회원으로, 아래 사유로 인해 중도해지 및 환불을 정중히 요청드립니다.{' '}
         {calc.refundReason ? REASON_BODY[calc.refundReason] : ''}{' '}
-        관련 법령에 따라 기한 내 처리해 주시기 바랍니다.
+        아래 계산 내역을 확인하시고 원만한 처리를 부탁드립니다.
       </p>
 
       {/* 1. 계약 내용 */}
@@ -441,31 +456,29 @@ function DocumentContent({
       </DocSection>
 
       {/* 4. 이행 기한 */}
-      <DocSection num="4" title="이행 기한 및 미이행 시 조치">
+      <DocSection num="4" title="환불 처리 요청 기한">
         <div className="px-3 py-3 text-xs leading-6 text-gray-700">
           <p>
-            본 청구서 수령일로부터 <strong>{form.deadline}일 이내</strong>({deadlineDate}까지)에
-            청구금액 <strong>{fmt(calc.refund)}원</strong>을 지급해 주시기 바랍니다.
+            본 요청서 수령일로부터 <strong>{form.deadline}일 이내</strong>({deadlineDate}까지)에
+            환불 금액 <strong>{fmt(calc.refund)}원</strong>을 처리해 주시면 감사드리겠습니다.
           </p>
           {form.bankAccount ? (
             <div className="mt-2 rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 font-semibold text-blue-800">
               입금 계좌: {form.bankAccount}
             </div>
           ) : (
-            <p className="mt-1 text-gray-500">입금 계좌는 별도 연락으로 안내 예정.</p>
+            <p className="mt-1 text-gray-500">입금 계좌는 별도 연락으로 안내 드리겠습니다.</p>
           )}
-          <p className="mt-3 font-semibold text-gray-800">기한 내 미이행 시 아래 절차를 진행할 예정입니다:</p>
-          <ul className="mt-1 list-disc list-inside space-y-0.5">
-            <li>한국소비자원 피해구제 신청 (www.ccn.go.kr)</li>
-            <li>법원 소액사건심판 청구</li>
-            <li>관할 지자체 체육시설 관리부서 민원 접수</li>
-          </ul>
+          <p className="mt-3 text-gray-600">
+            금액에 이견이 있으시거나 처리가 어려우신 경우, 편하게 연락 주시기 바랍니다.
+            원만한 합의가 어려울 경우 한국소비자원 분쟁조정 절차를 통해 해결하도록 하겠습니다.
+          </p>
         </div>
       </DocSection>
 
       {/* 서명 */}
       <div className="mt-6 pt-5 border-t border-gray-300 text-xs">
-        <p className="text-center text-gray-500 mb-4">위 내용이 사실임을 확인하며 적법한 조치를 취해 주시기 바랍니다.</p>
+        <p className="text-center text-gray-500 mb-4">위 내용을 확인하시고 원만한 처리를 부탁드립니다. 감사합니다.</p>
         <p className="text-center text-gray-400">{today}</p>
         <div className="mt-3 flex justify-center gap-16">
           <div className="text-center">

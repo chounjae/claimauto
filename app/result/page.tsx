@@ -1,6 +1,8 @@
 import ResultClient from './ResultClient'
 
-type RefundReason = 'closure' | 'business_fault' | 'injury' | 'pregnancy' | 'relocation' | 'user_cancel'
+type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
+
+const BUSINESS_FAULT_REASONS: RefundReason[] = ['closure', 'facility_defect', 'service_reduction', 'gym_relocation', 'price_increase']
 
 function daysBetween(a: string, b: string): number {
   const msPerDay = 1000 * 60 * 60 * 24
@@ -8,7 +10,7 @@ function daysBetween(a: string, b: string): number {
 }
 
 function calcPenalty(contractAmount: number, reason: RefundReason): number {
-  if (reason === 'closure' || reason === 'business_fault') return 0
+  if (BUSINESS_FAULT_REASONS.includes(reason)) return 0
   return Math.round(contractAmount * 0.1)
 }
 

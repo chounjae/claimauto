@@ -1,9 +1,13 @@
 export type RefundReason =
   | 'closure'
-  | 'business_fault'
+  | 'facility_defect'
+  | 'service_reduction'
+  | 'gym_relocation'
+  | 'price_increase'
   | 'injury'
   | 'pregnancy'
   | 'relocation'
+  | 'job_change'
   | 'user_cancel'
 
 interface Option {
@@ -14,13 +18,17 @@ interface Option {
 
 const BUSINESS_OPTIONS: Option[] = [
   { value: 'closure', label: '헬스장 폐업', sub: '위약금 없음' },
-  { value: 'business_fault', label: '사업자 귀책 기타', sub: '시설 불량·서비스 미제공 등 / 위약금 없음' },
+  { value: 'facility_defect', label: '시설 훼손 / 기구 고장·철거', sub: '위약금 없음' },
+  { value: 'service_reduction', label: '운영시간·서비스 축소', sub: '위약금 없음' },
+  { value: 'gym_relocation', label: '헬스장 이전 (접근 불가)', sub: '위약금 없음' },
+  { value: 'price_increase', label: '약정 외 요금 인상', sub: '위약금 없음' },
 ]
 
 const PERSONAL_OPTIONS: Option[] = [
   { value: 'injury', label: '부상 / 질병', sub: '위약금 10%' },
   { value: 'pregnancy', label: '임신 / 출산', sub: '위약금 10%' },
-  { value: 'relocation', label: '이사 / 이직', sub: '위약금 10%' },
+  { value: 'relocation', label: '이사 (주거지 이전)', sub: '위약금 10%' },
+  { value: 'job_change', label: '이직 / 직장 이전', sub: '위약금 10%' },
   { value: 'user_cancel', label: '단순 변심', sub: '위약금 10%' },
 ]
 

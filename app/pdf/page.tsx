@@ -16,7 +16,8 @@ export default async function PdfPage({
   const usedFee = Number(p.usedFee)
   const penalty = Number(p.penalty)
   const refund = Number(p.refund)
-  const refundReason = String(p.refundReason ?? 'user_cancel') as 'closure' | 'business_fault' | 'user_cancel'
+  type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
+  const refundReason = String(p.refundReason ?? 'user_cancel') as RefundReason
 
   if (!contractAmount || !startDate || !stopDate) {
     return (
