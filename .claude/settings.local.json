@@ -1,15 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build*)",
+      "Bash(npm run*)",
       "Bash(npm test*)",
-      "Bash(npm run test*)",
+      "Bash(npm install *)",
       "Bash(npx tsc*)",
       "Bash(npx eslint*)",
-      "Bash(npm run*)",
+      "Bash(npx prisma*)",
       "Bash(next build*)",
       "Bash(next dev*)",
-      "Bash(npx prisma*)",
       "Bash(git status)",
       "Bash(git diff*)",
       "Bash(git log*)",
@@ -31,11 +30,7 @@
       "Bash(gh run list*)",
       "Bash(gh run view*)",
       "Bash(ls*)",
-      "Bash(find .claude*)",
-      
-      "Bash(npm install *)",
-      "Bash(npm run *)",
-      "Bash(npm test *)"
+      "Bash(find .claude*)"
     ],
     "deny": [
       "Bash(rm -rf /*)",

@@ -29,6 +29,7 @@ const baseCalc = {
   startDate: '2024-01-01',
   stopDate: '2024-03-15',
   paymentType: '신용카드 일시불',
+  purchaseType: 'regular' as const,
   usedDays: 74,
   usedFee: 82221,
   penalty: 40000,

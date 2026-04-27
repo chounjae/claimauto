@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { track } from '@/lib/analytics'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 import NumberInput from '@/components/NumberInput'
@@ -74,6 +75,13 @@ export default function FormPage() {
       purchaseType,
       refundReason: refundReason!,
     })
+    const amount = Number(totalAmount)
+    track('form_submitted', {
+      refund_reason: refundReason,
+      purchase_type: purchaseType,
+      payment_type: paymentType,
+      amount_range: amount < 100000 ? 'under_100k' : amount < 300000 ? '100k_300k' : 'over_300k',
+    })
     router.push(`/result?${params.toString()}`)
   }
 
@@ -138,7 +146,24 @@ export default function FormPage() {
           error={errors.stopDate}
         />
 
-        <PaymentChips value={paymentType} onChange={setPaymentType} />
+        <div className="flex flex-col gap-1.5">
+          <PaymentChips value={paymentType} onChange={setPaymentType} />
+          {(paymentType === '신용카드 일시불' || paymentType === '할부') && (
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-5">
+              업체 방문 시 <strong>결제한 신용카드를 지참</strong>하세요. 카드 거래내역 확인에 필요할 수 있습니다. 카드사 차지백 신청도 가능합니다 (결제일로부터 120일 이내).
+            </p>
+          )}
+          {paymentType === '체크카드' && (
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-5">
+              업체 방문 시 <strong>결제한 체크카드를 지참</strong>하세요. 환불 금액은 원칙적으로 결제한 카드로 돌려받습니다.
+            </p>
+          )}
+          {paymentType === '현금' && (
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-5">
+              <strong>결제 영수증 또는 계좌 이체 내역서</strong>를 준비하세요. 영수증이 없으면 은행 앱에서 이체 내역을 캡처해두세요.
+            </p>
+          )}
+        </div>
 
         {/* 구매 방식 */}
         <div className="flex flex-col gap-2">

@@ -26,6 +26,7 @@ const baseResult = {
   penalty: 40000,
   refund: 277779,
   paymentType: '신용카드 일시불',
+  purchaseType: 'regular' as const,
 }
 
 describe('ResultClient', () => {
@@ -54,17 +55,10 @@ describe('ResultClient', () => {
     expect(screen.getByText(/277,779/)).toBeInTheDocument()
   })
 
-  it('외부 링크 클릭 시 모달을 표시한다', () => {
+  it('소비자원 바로가기 버튼은 준비 중 상태로 비활성화되어 있다', () => {
     render(<ResultClient result={baseResult} />)
-    fireEvent.click(screen.getByRole('button', { name: '소비자원 바로가기' }))
-    expect(screen.getByText('외부 사이트로 이동합니다')).toBeInTheDocument()
-  })
-
-  it('모달 취소 시 모달이 닫힌다', () => {
-    render(<ResultClient result={baseResult} />)
-    fireEvent.click(screen.getByRole('button', { name: '소비자원 바로가기' }))
-    fireEvent.click(screen.getByRole('button', { name: '취소' }))
-    expect(screen.queryByText('외부 사이트로 이동합니다')).not.toBeInTheDocument()
+    const btn = screen.getByRole('button', { name: '소비자원 바로가기' })
+    expect(btn).toBeDisabled()
   })
 
   it('현금 결제 시 카드사 안내를 표시하지 않는다', () => {
