@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
+type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'not_started' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
 const BUSINESS_FAULT_REASONS: RefundReason[] = ['closure', 'facility_defect', 'service_reduction', 'gym_relocation', 'price_increase']
 
@@ -44,8 +44,9 @@ export default async function ResultPage({
     )
   }
 
-  const usedDays = daysBetween(startDate, stopDate)
-  const usedFee = Math.round((monthlyFee / 30) * usedDays)
+  const isNotStarted = refundReason === 'not_started'
+  const usedDays = isNotStarted ? 0 : daysBetween(startDate, stopDate)
+  const usedFee = isNotStarted ? 0 : Math.round((monthlyFee / 30) * usedDays)
   const penalty = calcPenalty(contractAmount, refundReason)
   const refund = Math.max(0, contractAmount - usedFee - penalty)
 

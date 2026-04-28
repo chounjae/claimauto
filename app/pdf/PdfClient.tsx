@@ -5,7 +5,7 @@ import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 import { track } from '@/lib/analytics'
 
-type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
+type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'not_started' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
 interface CalcData {
   contractAmount: number
@@ -45,6 +45,7 @@ const REASON_LABEL: Record<RefundReason, string> = {
   service_reduction: '운영시간·서비스 축소',
   gym_relocation: '헬스장 이전 (접근 불가)',
   price_increase: '약정 외 요금 인상',
+  not_started: '이용 개시 전 해지',
   injury: '부상 / 질병',
   pregnancy: '임신 / 출산',
   relocation: '이사 (주거지 이전)',
@@ -71,6 +72,8 @@ const REASON_BODY: Record<RefundReason, string> = {
     '이사로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
   job_change:
     '이직·직장 이전으로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
+  not_started:
+    '결제 후 이용을 개시하지 않은 상태에서 계약 해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 이용 개시 전 해지이므로 기이용료는 발생하지 않으며, 위약금(납부액의 10% 이내)만을 제외한 금액의 환불을 요청드립니다.',
   user_cancel:
     '개인 사정으로 인해 계약 기간 중 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
 }
