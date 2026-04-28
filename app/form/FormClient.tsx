@@ -140,7 +140,6 @@ export default function FormClient() {
         {/* 환불 요청일 */}
         <DatePicker
           label="환불 요청일 / 폐업 확인일"
-          hint="오늘 날짜로 자동 설정됩니다. 다른 날짜면 변경하세요"
           value={stopDate}
           onChange={setStopDate}
           error={errors.stopDate}

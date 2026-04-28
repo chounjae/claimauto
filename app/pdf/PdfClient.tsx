@@ -355,25 +355,17 @@ function Preview({
           <p>📮 우체국 내용증명으로 발송하려면 <strong>인터넷우체국(epost.go.kr)</strong>을 이용하세요. 신청인 주소를 미리 입력해두면 편리합니다.</p>
         </div>
 
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent flex flex-col gap-2">
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-10 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent flex flex-col gap-2">
           <button
             type="button"
             onClick={() => {
               track('pdf_save_clicked', { refund_reason: calc.refundReason })
-              const isChromeIOS = /CriOS/i.test(navigator.userAgent)
-              if (isChromeIOS) {
-                alert('Chrome에서는 PDF 저장이 지원되지 않습니다.\nSafari로 열어주세요: 주소창 오른쪽 공유(□↑) → Safari에서 열기')
-                return
-              }
               onPrint()
             }}
             className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#10B981] text-white text-base font-bold shadow-lg"
           >
             PDF 저장 / 인쇄
           </button>
-          <p className="text-center text-[11px] text-gray-400">
-            iPhone Safari: 인쇄 화면 → 공유(□↑) → PDF로 내보내기
-          </p>
           <button
             type="button"
             onClick={async () => {

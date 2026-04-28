@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# MCP credentials
+.mcp.json
+
 # dependencies
 /node_modules
 /.pnp
@@ -44,3 +47,6 @@ next-env.d.ts
 plan.md
 .claude/_workspace/
 .claude/context/*.png
+
+.vercel
+.env*.local
