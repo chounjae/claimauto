@@ -56,11 +56,18 @@ export default function FormClient() {
   const [refundReason, setRefundReason] = useState<RefundReason | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
   const formStartedRef = useRef(false)
+  const fieldsTrackedRef = useRef<Set<string>>(new Set())
 
   const trackFormStart = () => {
     if (formStartedRef.current) return
     formStartedRef.current = true
     track('form_started')
+  }
+
+  const trackField = (field: string) => {
+    if (fieldsTrackedRef.current.has(field)) return
+    fieldsTrackedRef.current.add(field)
+    track('form_field_filled', { field })
   }
 
   const monthlyFee = useMemo(() => {
@@ -113,14 +120,14 @@ export default function FormClient() {
           label="총 결제금액"
           hint="헬스장에 실제 낸 전체 금액 (예: 400,000)"
           value={totalAmount}
-          onChange={v => { trackFormStart(); setTotalAmount(v) }}
+          onChange={v => { trackFormStart(); setTotalAmount(v); if (v) trackField('total_amount') }}
           error={errors.totalAmount}
         />
 
         {/* 계약 기간 */}
         <MonthChips
           value={months}
-          onChange={v => { trackFormStart(); setMonths(v) }}
+          onChange={v => { trackFormStart(); setMonths(v); if (v) trackField('months') }}
           error={errors.months}
         />
 
@@ -140,7 +147,7 @@ export default function FormClient() {
         <DatePicker
           label="계약 시작일"
           value={startDate}
-          onChange={setStartDate}
+          onChange={v => { setStartDate(v); trackField('start_date') }}
           error={errors.startDate}
         />
 
@@ -148,12 +155,12 @@ export default function FormClient() {
         <DatePicker
           label="환불 요청일 / 폐업 확인일"
           value={stopDate}
-          onChange={setStopDate}
+          onChange={v => { setStopDate(v); trackField('stop_date') }}
           error={errors.stopDate}
         />
 
         <div className="flex flex-col gap-1.5">
-          <PaymentChips value={paymentType} onChange={setPaymentType} />
+          <PaymentChips value={paymentType} onChange={v => { setPaymentType(v); trackField('payment_type') }} />
           {(paymentType === '신용카드 일시불' || paymentType === '할부') && (
             <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 leading-5">
               업체 방문 시 <strong>결제한 신용카드를 지참</strong>하세요. 카드 거래내역 확인에 필요할 수 있습니다. 카드사 차지백 신청도 가능합니다 (결제일로부터 120일 이내).
@@ -182,7 +189,7 @@ export default function FormClient() {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setPurchaseType(opt.value)}
+                onClick={() => { setPurchaseType(opt.value); trackField('purchase_type') }}
                 className={`flex-1 flex flex-col items-center py-3 rounded-xl border transition-colors ${
                   purchaseType === opt.value
                     ? 'border-[#2563EB] bg-blue-50'
@@ -209,6 +216,7 @@ export default function FormClient() {
           onChange={(v) => {
             setRefundReason(v)
             setErrors((prev) => ({ ...prev, refundReason: undefined }))
+            if (v) trackField('refund_reason')
           }}
           error={errors.refundReason}
         />
