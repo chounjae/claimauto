@@ -1,10 +1,12 @@
 import Logo from '@/components/Logo'
 import TrustBadges from '@/components/TrustBadges'
 import CTAButton from '@/components/CTAButton'
+import TrackPageView from '@/components/TrackPageView'
 
 export default function OnboardingPage() {
   return (
     <main className="flex flex-col min-h-screen px-5 pb-28">
+      <TrackPageView event="onboarding_viewed" />
       {/* 헤더 */}
       <header className="pt-6 pb-4">
         <Logo />

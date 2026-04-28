@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
+import { track } from '@/lib/analytics'
 
 type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
@@ -207,6 +208,37 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
   )
 }
 
+function VisitChecklist({ paymentType }: { paymentType: string }) {
+  const items: string[] = ['이 PDF (인쇄 또는 저장)']
+
+  if (paymentType === '신용카드 일시불' || paymentType === '할부') {
+    items.push('결제한 신용카드')
+    items.push('카드 결제 내역서 또는 문자 영수증')
+  } else if (paymentType === '체크카드') {
+    items.push('결제한 체크카드')
+    items.push('카드 결제 내역서 또는 문자 영수증')
+  } else if (paymentType === '현금') {
+    items.push('현금 영수증 또는 계좌 이체 내역 캡처')
+  }
+
+  items.push('업체에 환불 요청한 카카오톡·문자 내역 스크린샷')
+  items.push('계약서 또는 회원 등록증 (있는 경우)')
+
+  return (
+    <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-xs text-blue-800 mb-3 leading-5">
+      <p className="font-bold mb-2">업체 방문·전달 시 지참물 체크리스트</p>
+      <ul className="flex flex-col gap-1.5">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <span className="mt-0.5 shrink-0">☐</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function Field({
   label, id, value, onChange, placeholder, inputMode, error, hint, required,
 }: {
@@ -258,6 +290,11 @@ function Preview({
   onPrint: () => void
 }) {
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    track('pdf_page_viewed', { refund_reason: calc.refundReason })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
   const todayIso = new Date().toISOString().split('T')[0]
 
@@ -298,7 +335,7 @@ function Preview({
 
   return (
     <>
-      <div className="print:hidden flex flex-col min-h-screen px-5 pb-40">
+      <div className="print:hidden flex flex-col min-h-screen px-5 pb-[260px]">
         <div className="pt-6 mb-4">
           <h1 className="text-xl font-bold text-gray-900">청구서 미리보기</h1>
           <p className="mt-1 text-sm text-gray-500">PDF를 저장해 카카오톡으로 전송하거나 직접 전달하세요</p>
@@ -308,6 +345,8 @@ function Preview({
           <DocumentContent calc={calc} form={form} today={today} todayIso={todayIso} />
         </div>
 
+        <VisitChecklist paymentType={calc.paymentType} />
+
         <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-xs text-amber-700 mb-32 leading-5 space-y-1.5">
           <p>💬 <strong>카카오톡 전송 추천</strong> — 읽음 표시가 발송 증거가 됩니다. 스크린샷을 저장해두세요.</p>
           <p>📮 우체국 내용증명으로 발송하려면 <strong>인터넷우체국(epost.go.kr)</strong>을 이용하세요. 신청인 주소를 미리 입력해두면 편리합니다.</p>
@@ -316,17 +355,28 @@ function Preview({
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent flex flex-col gap-2">
           <button
             type="button"
-            onClick={onPrint}
+            onClick={() => {
+              track('pdf_save_clicked', { refund_reason: calc.refundReason })
+              const isChromeIOS = /CriOS/i.test(navigator.userAgent)
+              if (isChromeIOS) {
+                alert('Chrome에서는 PDF 저장이 지원되지 않습니다.\nSafari로 열어주세요: 주소창 오른쪽 공유(□↑) → Safari에서 열기')
+                return
+              }
+              onPrint()
+            }}
             className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#10B981] text-white text-base font-bold shadow-lg"
           >
             PDF 저장 / 인쇄
           </button>
-          <p className="text-center text-[11px] text-gray-400 -mt-1">
-            iPhone: 인쇄 화면에서 공유(□↑) 탭 → PDF로 내보내기
+          <p className="text-center text-[11px] text-gray-400">
+            iPhone Safari: 인쇄 화면 → 공유(□↑) → PDF로 내보내기
           </p>
           <button
             type="button"
-            onClick={copyKakaoMessage}
+            onClick={async () => {
+              await copyKakaoMessage()
+              track('kakao_copied', { refund_reason: calc.refundReason })
+            }}
             className="flex h-[44px] w-full items-center justify-center rounded-xl bg-[#FAE100] text-[#3A1D1D] text-sm font-bold"
           >
             {copied ? '복사 완료!' : '카카오톡 메시지 복사'}

@@ -1,4 +1,9 @@
+import type { Metadata } from 'next'
 import ResultClient from './ResultClient'
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 

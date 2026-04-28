@@ -1,9 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 import CountUp from '@/components/CountUp'
+import { track } from '@/lib/analytics'
 
 type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
@@ -40,6 +42,16 @@ export default function ResultClient({ result }: { result: CalcResult }) {
   const fmt = (n: number) => n.toLocaleString()
   const noPenalty = result.penalty === 0
   const isPersonal = result.refundReason ? PERSONAL_REASONS.has(result.refundReason) : false
+
+  useEffect(() => {
+    track('result_viewed', {
+      refund_amount: result.refund,
+      refund_reason: result.refundReason,
+      purchase_type: result.purchaseType,
+      no_penalty: noPenalty,
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const pdfParams = new URLSearchParams({
     contractAmount: String(result.contractAmount),
@@ -123,6 +135,9 @@ export default function ResultClient({ result }: { result: CalcResult }) {
         </div>
       )}
 
+      {/* 준비물 카드 */}
+      <PrepKit paymentType={result.paymentType} />
+
       {/* 다음 단계 */}
       <h2 className="mb-3 text-sm font-bold text-gray-800">다음 단계 선택</h2>
       <div className="flex flex-col gap-3">
@@ -202,6 +217,41 @@ export default function ResultClient({ result }: { result: CalcResult }) {
         </Link>
       </div>
     </main>
+  )
+}
+
+function PrepKit({ paymentType }: { paymentType: string }) {
+  const items: string[] = ['ClaimAuto 환불 청구서 (이 화면에서 PDF 생성)']
+
+  if (paymentType === '신용카드 일시불' || paymentType === '할부') {
+    items.push('결제한 신용카드 지참 (거래내역 확인·차지백 신청 시 필요)')
+    items.push('카드 결제 내역서 또는 문자 영수증')
+  } else if (paymentType === '체크카드') {
+    items.push('결제한 체크카드 지참 (환불금 원칙적으로 해당 카드로 입금)')
+    items.push('카드 결제 내역서 또는 문자 영수증')
+  } else if (paymentType === '현금') {
+    items.push('현금 영수증 또는 계좌 이체 내역서 캡처')
+    items.push('영수증 없으면 은행 앱 이체 내역 화면 캡처')
+  }
+
+  items.push('업체에 환불 요청한 카카오톡·문자 내역 스크린샷')
+  items.push('계약서 또는 회원 등록증 (있는 경우)')
+
+  return (
+    <div className="mb-5 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100">
+        <h2 className="text-sm font-bold text-gray-800">업체 방문·연락 시 준비물</h2>
+        <p className="text-xs text-gray-400 mt-0.5">납부 방식: {paymentType}</p>
+      </div>
+      <ul className="px-4 py-3 flex flex-col gap-2">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+            <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-bold">✓</span>
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

@@ -30,26 +30,15 @@
 | PDF 생성 | `/pdf` | 추가 정보 입력, 미리보기, 다운로드 |
 | 소비자원 가이드 | `/guide` | 스텝 카드, FAQ 아코디언 |
 
-## 에이전트 구조
+## 스킬 라우팅
 
-| 에이전트 | 파일 | 역할 | tools |
-|----------|------|------|-------|
-| orchestrator | .claude/agents/orchestrator.md | 파이프라인 지휘 | Agent, Bash, Read, Glob, TaskCreate |
-| planner | .claude/agents/planner.md | 계획 수립 (읽기 전용) | Read, Grep, Glob, Bash |
-| implementer | .claude/agents/implementer.md | 코드 구현 | Read, Write, Edit, Bash, Grep, Glob |
-| reviewer | .claude/agents/reviewer.md | 코드 리뷰 (읽기 전용) | Read, Grep, Glob, Bash |
-
-## 스킬 발동 방법
-
-> 슬래시 명령 불필요 — 자연어로 말하면 자동 발동
-
-| 스킬 | 발동 예시 |
-|------|-----------|
-| orchestrate | "온보딩 화면 만들어줘", "환급액 계산 로직 구현해줘" |
-| implement | "바로 수정해줘", "간단한 스타일 수정" |
-| review | "코드 리뷰해줘", "이 파일 검토해줘" |
-| issue | "이슈 등록해줘", "버그 리포트 만들어" |
-| pr | "PR 만들어줘", "풀 리퀘스트 올려" |
+| 스킬 | 언제 사용 | 예시 |
+|------|-----------|------|
+| **implement** | 기존 코드 수정·버그·스타일·텍스트 변경 | "고쳐줘", "수정해줘", "안 되는데", "제거해줘" |
+| **orchestrate** | **새 페이지·신규 기능** 처음 구현 (여러 파일) | "새 화면 만들어줘", "새 기능 추가해줘" |
+| **review** | 코드 리뷰만 필요할 때 | "리뷰해줘", "이 파일 검토해줘" |
+| **issue** | GitHub 이슈 등록 | "이슈 등록해줘", "버그 리포트 만들어" |
+| **pr** | PR 생성 | "PR 만들어줘" |
 
 ## 반드시 지킬 규칙
 - main 브랜치 직접 푸시 절대 금지 (pre-guard.sh 차단)
