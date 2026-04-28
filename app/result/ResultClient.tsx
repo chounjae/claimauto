@@ -7,7 +7,7 @@ import ProgressBar from '@/components/ProgressBar'
 import CountUp from '@/components/CountUp'
 import { track } from '@/lib/analytics'
 
-type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
+type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'not_started' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
 interface CalcResult {
   contractAmount: number
@@ -29,6 +29,7 @@ const REASON_LABEL: Record<RefundReason, string> = {
   service_reduction: '운영시간·서비스 축소',
   gym_relocation: '헬스장 이전 (접근 불가)',
   price_increase: '약정 외 요금 인상',
+  not_started: '이용 개시 전 해지',
   injury: '부상 / 질병',
   pregnancy: '임신 / 출산',
   relocation: '이사 (주거지 이전)',
@@ -36,11 +37,12 @@ const REASON_LABEL: Record<RefundReason, string> = {
   user_cancel: '단순 변심',
 }
 
-const PERSONAL_REASONS = new Set<RefundReason>(['injury', 'pregnancy', 'relocation', 'job_change', 'user_cancel'])
+const PERSONAL_REASONS = new Set<RefundReason>(['not_started', 'injury', 'pregnancy', 'relocation', 'job_change', 'user_cancel'])
 
 export default function ResultClient({ result }: { result: CalcResult }) {
   const fmt = (n: number) => n.toLocaleString()
   const noPenalty = result.penalty === 0
+  const isNotStarted = result.refundReason === 'not_started'
   const isPersonal = result.refundReason ? PERSONAL_REASONS.has(result.refundReason) : false
 
   useEffect(() => {
@@ -105,9 +107,10 @@ export default function ResultClient({ result }: { result: CalcResult }) {
           <Row label="계약금" value={`${fmt(result.contractAmount)}원`} />
           <Row
             label="기이용료"
-            sub={`${result.usedDays}일 × ${fmt(Math.round(result.monthlyFee / 30))}원/일`}
-            value={`−${fmt(result.usedFee)}원`}
-            neg
+            sub={isNotStarted ? '이용 개시 전 → 기이용료 없음' : `${result.usedDays}일 × ${fmt(Math.round(result.monthlyFee / 30))}원/일`}
+            value={isNotStarted ? '없음' : `−${fmt(result.usedFee)}원`}
+            neg={!isNotStarted}
+            accent={isNotStarted}
           />
           <Row
             label="위약금"

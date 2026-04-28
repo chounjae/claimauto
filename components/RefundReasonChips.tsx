@@ -4,6 +4,7 @@ export type RefundReason =
   | 'service_reduction'
   | 'gym_relocation'
   | 'price_increase'
+  | 'not_started'
   | 'injury'
   | 'pregnancy'
   | 'relocation'
@@ -25,6 +26,7 @@ const BUSINESS_OPTIONS: Option[] = [
 ]
 
 const PERSONAL_OPTIONS: Option[] = [
+  { value: 'not_started', label: '이용 개시 전 해지', sub: '기이용료 없음 · 위약금 10%' },
   { value: 'injury', label: '부상 / 질병', sub: '위약금 10%' },
   { value: 'pregnancy', label: '임신 / 출산', sub: '위약금 10%' },
   { value: 'relocation', label: '이사 (주거지 이전)', sub: '위약금 10%' },
