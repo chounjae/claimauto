@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Logo from '@/components/Logo'
 import ExternalLinkModal from '@/components/ExternalLinkModal'
+import { track } from '@/lib/analytics'
 
 /* ─── 소비자원 신청서 작성 템플릿 ─────────────────── */
 const TEMPLATE_OVERVIEW =
@@ -148,6 +149,10 @@ const FAQS = [
 export default function GuideClient() {
   const router = useRouter()
   const [externalModal, setExternalModal] = useState(false)
+
+  useEffect(() => {
+    track('guide_viewed')
+  }, [])
   const [faqOpen, setFaqOpen] = useState<number | null>(null)
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)

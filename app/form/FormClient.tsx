@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { track } from '@/lib/analytics'
 import Logo from '@/components/Logo'
@@ -55,6 +55,13 @@ export default function FormClient() {
   const [purchaseType, setPurchaseType] = useState<'regular' | 'discounted'>('regular')
   const [refundReason, setRefundReason] = useState<RefundReason | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
+  const formStartedRef = useRef(false)
+
+  const trackFormStart = () => {
+    if (formStartedRef.current) return
+    formStartedRef.current = true
+    track('form_started')
+  }
 
   const monthlyFee = useMemo(() => {
     if (!totalAmount || !months) return null
@@ -106,14 +113,14 @@ export default function FormClient() {
           label="총 결제금액"
           hint="헬스장에 실제 낸 전체 금액 (예: 400,000)"
           value={totalAmount}
-          onChange={setTotalAmount}
+          onChange={v => { trackFormStart(); setTotalAmount(v) }}
           error={errors.totalAmount}
         />
 
         {/* 계약 기간 */}
         <MonthChips
           value={months}
-          onChange={setMonths}
+          onChange={v => { trackFormStart(); setMonths(v) }}
           error={errors.months}
         />
 

@@ -157,6 +157,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
           </p>
           <Link
             href={`/pdf?${pdfParams.toString()}`}
+            onClick={() => track('result_cta_clicked', { cta: 'pdf' })}
             className="flex h-10 w-full items-center justify-center rounded-xl bg-[#2563EB] text-white text-sm font-semibold"
           >
             청구서 PDF 만들기
@@ -183,6 +184,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
             </button>
             <Link
               href="/guide"
+              onClick={() => track('result_cta_clicked', { cta: 'guide' })}
               className="flex-1 h-10 flex items-center justify-center rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-700"
             >
               신고 흐름 보기
