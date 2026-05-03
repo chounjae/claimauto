@@ -79,7 +79,7 @@ export default function DatePicker({ label, hint, value, onChange, error }: Date
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-semibold text-gray-800">{label}</span>
+      {label && <span className="text-sm font-semibold text-gray-800">{label}</span>}
       <div className="flex gap-2">
         <div className="relative flex-[2]">
           <select value={y || ''} onChange={(e) => handleYear(Number(e.target.value))} className={`${sel(!!y)} w-full pr-7`}>

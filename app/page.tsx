@@ -32,7 +32,7 @@ export default function OnboardingPage() {
       </section>
 
       {/* 하단 고정 CTA */}
-      <CTAButton href="/form" label="환급액 계산하기" />
+      <CTAButton href="/form" label="무료 환급액 계산하기" sublabel="3초 소요 · 무료 · 회원가입 불필요" />
     </main>
   )
 }

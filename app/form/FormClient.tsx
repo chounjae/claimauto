@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { track } from '@/lib/analytics'
 import Logo from '@/components/Logo'
@@ -10,6 +10,20 @@ import MonthChips from '@/components/MonthChips'
 import DatePicker from '@/components/DatePicker'
 import PaymentChips, { type PaymentType } from '@/components/PaymentChips'
 import RefundReasonChips, { type RefundReason } from '@/components/RefundReasonChips'
+
+const START_DATE_SHORTCUTS = [
+  { label: '1개월 전', months: 1 },
+  { label: '3개월 전', months: 3 },
+  { label: '6개월 전', months: 6 },
+  { label: '1년 전', months: 12 },
+] as const
+
+function dateMonthsAgo(months: number): string {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() - months)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
 
 interface FormErrors {
   totalAmount?: string
@@ -55,14 +69,11 @@ export default function FormClient() {
   const [purchaseType, setPurchaseType] = useState<'regular' | 'discounted'>('regular')
   const [refundReason, setRefundReason] = useState<RefundReason | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
-  const formStartedRef = useRef(false)
   const fieldsTrackedRef = useRef<Set<string>>(new Set())
 
-  const trackFormStart = () => {
-    if (formStartedRef.current) return
-    formStartedRef.current = true
+  useEffect(() => {
     track('form_started')
-  }
+  }, [])
 
   const trackField = (field: string) => {
     if (fieldsTrackedRef.current.has(field)) return
@@ -120,14 +131,14 @@ export default function FormClient() {
           label="총 결제금액"
           hint="헬스장에 실제 낸 전체 금액 (예: 400,000)"
           value={totalAmount}
-          onChange={v => { trackFormStart(); setTotalAmount(v); if (v) trackField('total_amount') }}
+          onChange={v => { setTotalAmount(v); if (v) trackField('total_amount') }}
           error={errors.totalAmount}
         />
 
         {/* 계약 기간 */}
         <MonthChips
           value={months}
-          onChange={v => { trackFormStart(); setMonths(v); if (v) trackField('months') }}
+          onChange={v => { setMonths(v); if (v) trackField('months') }}
           error={errors.months}
         />
 
@@ -144,12 +155,39 @@ export default function FormClient() {
         )}
 
         {/* 계약 시작일 */}
-        <DatePicker
-          label="계약 시작일"
-          value={startDate}
-          onChange={v => { setStartDate(v); trackField('start_date') }}
-          error={errors.startDate}
-        />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-800">계약 시작일</span>
+            <span className="text-xs text-gray-400">정확하지 않아도 됩니다</span>
+          </div>
+          <div className="flex gap-2">
+            {START_DATE_SHORTCUTS.map(({ label, months: m }) => {
+              const val = dateMonthsAgo(m)
+              const isSelected = startDate.slice(0, 7) === val.slice(0, 7)
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => { setStartDate(val); trackField('start_date') }}
+                  className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${
+                    isSelected
+                      ? 'border-[#2563EB] bg-blue-50 text-[#2563EB] font-semibold'
+                      : 'border-gray-200 bg-white text-gray-600'
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          <DatePicker
+            label=""
+            hint="위에서 선택하거나 직접 날짜를 입력하세요"
+            value={startDate}
+            onChange={v => { setStartDate(v); trackField('start_date') }}
+            error={errors.startDate}
+          />
+        </div>
 
         {/* 환불 요청일 */}
         <DatePicker

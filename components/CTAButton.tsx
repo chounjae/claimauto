@@ -6,9 +6,10 @@ import { track } from '@/lib/analytics'
 interface CTAButtonProps {
   href: string
   label: string
+  sublabel?: string
 }
 
-export default function CTAButton({ href, label }: CTAButtonProps) {
+export default function CTAButton({ href, label, sublabel }: CTAButtonProps) {
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent">
       <Link
@@ -18,6 +19,9 @@ export default function CTAButton({ href, label }: CTAButtonProps) {
       >
         {label}
       </Link>
+      {sublabel && (
+        <p className="mt-2 text-center text-xs text-gray-400">{sublabel}</p>
+      )}
     </div>
   )
 }

@@ -212,14 +212,18 @@ export default function ResultClient({ result }: { result: CalcResult }) {
         </div>
       </div>
 
-      {/* 다시 계산 */}
+      {/* 하단 고정 CTA */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent">
         <Link
-          href="/form"
-          className="flex h-[52px] w-full items-center justify-center rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-700"
+          href={`/pdf?${pdfParams.toString()}`}
+          onClick={() => track('result_cta_clicked', { cta: 'pdf_bottom' })}
+          className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#2563EB] text-white text-base font-bold shadow-lg active:scale-[0.98] transition-transform"
         >
-          다시 계산하기
+          청구서 PDF 만들기
         </Link>
+        <p className="mt-2 text-center text-xs text-gray-400">
+          <Link href="/form" className="underline underline-offset-2">다시 계산하기</Link>
+        </p>
       </div>
     </main>
   )
