@@ -15,6 +15,7 @@ function init() {
 
 export function track(event: string, properties?: Record<string, unknown>) {
   if (typeof window === 'undefined') return
+  if (localStorage.getItem('__no_track') === '1') return
   init()
   if (!initialized) return
   mixpanel.track(event, properties)
