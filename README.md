@@ -1,36 +1,137 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClaimAuto — 헬스장 환불 청구 자동화
 
-## Getting Started
+> 공정위 고시 기반 환급액 자동 계산 + 내용증명 PDF 생성 모바일 웹앱
+>
+> https://claimauto.aphelion.ai.kr
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 문제 정의
+
+헬스장이 "이벤트 가격이라 환불 불가", "계약서에 서명했으니 안 됩니다"라고 거절해도, 법적으로는 환불이 가능합니다.
+
+**공정거래위원회 고시 소비자분쟁해결기준 제56조(체육시설업)** 는 계약서 내용과 무관하게 이용한 만큼만 차감하고 위약금은 10% 이내로 제한합니다. 그러나 대부분의 소비자는 이 기준을 모릅니다.
+
+이것은 **정보 비대칭 문제**입니다.
+
+- 사업자는 공정위 고시를 알고, 소비자는 모른다
+- 모르면 "환불 불가" 약관을 그대로 수용하거나 포기한다
+- 알게 되면 소비자원 / 소액소송으로 실제 권리를 찾을 수 있다
+
+---
+
+## 솔루션
+
+**4가지 정보 입력 → 법적 환급액 자동 계산 → 내용증명 PDF 생성**
+
+소비자가 업체에 보낼 수 있는 법적 서류를 3분 안에, 무료로 만들어 드립니다.
+
+### 환급액 계산 공식
+
+```
+환급액 = 계약금 - 기이용료 - 위약금
+
+기이용료 = (월이용료 ÷ 30) × 이용일수
+위약금    = 계약금 × 10% 이내  (공정위 고시 상한)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 서비스 흐름
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 화면 | 경로 | 내용 |
+|------|------|------|
+| 온보딩 | `/` | 문제 상황 공감, 서비스 설명, CTA |
+| 정보입력 폼 | `/form` | 계약금·납부방식·계약일·해지일 4개 필드 입력 |
+| 환급액 결과 | `/result` | 법적 환급액 계산 결과, 소비자원/소액소송 다음 단계 안내 |
+| PDF 생성 | `/pdf` | 업체명·주소 추가 입력, 내용증명 PDF 미리보기 및 다운로드 |
+| 소비자원 가이드 | `/guide` | 단계별 청구 절차, FAQ |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 기술 스택
 
-To learn more about Next.js, take a look at the following resources:
+- **프레임워크:** Next.js + TypeScript
+- **스타일링:** Tailwind CSS
+- **트래킹:** Mixpanel
+- **배포:** Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Mixpanel 지표 (2026-04-03 ~ 2026-05-03, 30일)
 
-## Deploy on Vercel
+### KPI 대시보드
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| 지표 | 이벤트 | 현재 | 목표 | 상태 |
+|------|--------|------|------|------|
+| 월 방문자 | `onboarding_viewed` | **183명** | 500명 | ⚠️ |
+| CTA 클릭률 | `cta_clicked / onboarding_viewed` | **35%** | 35%+ | ✅ |
+| 폼 완성률 | `form_submitted / onboarding_viewed` | **8.2%** | 15%+ | ⚠️ |
+| 결과 전환율 | `result_viewed / form_submitted` | **100%** | 100% | ✅ |
+| PDF 저장률 | `pdf_save_clicked / result_viewed` | **20%** | 40%+ | ❌ |
+| 공유 | `kakao_copied` | **2명/월** | 20명/월 | ❌ |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 가설별 검증 현황
+
+#### H1. 수요 가설 — ⚠️ 부분 검증
+
+> "이 문제를 가진 사람이 온라인에서 해결책을 찾고 있다"
+
+에브리타임 자유게시판 포스팅 1건으로 166명 유입 (전체 트래픽의 90.7%). 수요는 확인됐으나 채널 재현성 미확인.
+
+#### H2. 문제 공감 가설 — ✅ 검증
+
+> "법을 모르기 때문에 도움이 필요하다는 것을 느낀다"
+
+랜딩 → CTA 클릭률 35% (64/183). 메시지-문제 공감 성립.
+
+#### H3. 가치 가설 — ✅ 강하게 검증
+
+> "계산 결과를 보면 '내가 받을 돈이 있다'는 것을 실감한다"
+
+폼 완성자의 100% (15/15)가 결과 화면까지 도달. PDF 진입 의향도 47% (7/15).
+
+#### H4. 행동 전환 가설 — ❌ 미검증 (표본 부족)
+
+> "권리를 알게 되면 실제로 청구서를 만들어 행동한다"
+
+PDF 저장까지 전환율 20% (3/15). n=3이라 판단 불가. PDF 페이지 마찰 의심.
+
+#### H5. 바이럴 가설 — ❌ 미검증
+
+> "해결된 경험을 주변에 공유한다"
+
+카카오 공유 2명/월. 목표 20명/월.
+
+---
+
+## 검증된 채널
+
+| 채널 | 실적 | 특성 |
+|------|------|------|
+| **에브리타임** | 포스팅 1건 → 166명 유입 | 대학생 익명 커뮤니티, 게시글 수명 1일 이내 |
+| 클리앙 (실험 예정) | — | 소비자 권리 의식 높은 IT/직장인 30~45세 |
+| 네이트판 (실험 예정) | — | 20~35세 여성, 경험담 바이럴 가능성 높음 |
+| 블라인드 (실험 예정) | — | 직장인 PT 이용자 |
+
+---
+
+## 현재 최우선 과제
+
+1. **채널 재현성 검증** (H1) — 에브리타임 재포스팅 + 클리앙/네이트판 신규 실험
+2. **폼 완성률 개선 재측정** (H2) — 계약 시작일 빠른 선택 칩 배포 후 2주 데이터 확인
+3. **PDF 저장률 병목 제거** (H4) — result → pdf 전환 마찰 원인 파악
+
+---
+
+## Go/No-Go 기준
+
+### 유료 마케팅 진입 조건 (모두 충족 필요)
+
+- [ ] 에브리타임 외 채널 1개 이상 월 100명+ 재현
+- [ ] 폼 완성률 15%+ (n=50 이상)
+- [ ] PDF 저장률 40%+ (n=30 이상)
+
+### 피벗 조건 (하나라도 해당 시)
+
+- 채널 5개 실험 후에도 월 방문자 200명 미달
+- 폼 완성률 개선 후에도 8% 미만 지속
+- PDF 저장률 6주 연속 15% 미만
