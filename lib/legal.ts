@@ -34,6 +34,12 @@ export const GOSI_CAPTION = '공정거래위원회 「소비자분쟁해결기�
 export const BASE_LAW =
   '「체육시설의 설치·이용에 관한 법률」 제22조 및 같은 법 시행령 제21조의2'
 
+/**
+ * 계속적 역무계약의 중도해지·잔액 환불 근거 법률.
+ * 기존에 `app/pdf/PdfClient.tsx` 의 "법적 근거" 섹션에 직접 적혀 있던 인용을 여기로 옮겼다.
+ */
+export const CONTINUING_SERVICE_LAW = '방문판매 등에 관한 법률 제31조·제32조'
+
 /** 위약금 산정 근거 (방문판매법 계열 고시) */
 export const PENALTY_LAW =
   '방문판매법 「계속거래 등의 해지·해제에 따른 위약금 및 대금의 환급에 관한 산정기준」(공정거래위원회 고시 제19-9호)'
