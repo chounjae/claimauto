@@ -29,6 +29,23 @@ export function getClientEnv(): ClientEnv {
   return { ua, is_inapp, is_ios }
 }
 
+/**
+ * 쿼리스트링을 제거한 경로만 남긴다.
+ *
+ * /result 와 /pdf 는 계약금액·계약일·해지일·결제수단·환급액을 쿼리스트링으로 받는다.
+ * Mixpanel 은 기본적으로 $current_url 을 자동 첨부하므로, 그대로 두면 이 값들이
+ * 분석 서버에 전송·저장된다. 분석에 필요한 값은 이미 이벤트 속성으로 따로 보내므로
+ * URL 에서는 경로만 남기고 전부 잘라낸다.
+ */
+function sanitizeUrl(raw: string): string {
+  try {
+    const u = new URL(raw)
+    return `${u.origin}${u.pathname}`
+  } catch {
+    return raw.split('?')[0]
+  }
+}
+
 function init() {
   if (initialized) return
   const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN
@@ -36,9 +53,20 @@ function init() {
   mixpanel.init(token, {
     track_pageview: true,
     persistence: 'localStorage',
+    // 자동 수집되는 URL 계열 속성에서 쿼리스트링을 제거한다.
+    loaded: () => {
+      const href = typeof location === 'undefined' ? '' : location.href
+      mixpanel.register({
+        $current_url: sanitizeUrl(href),
+        current_url_path: typeof location === 'undefined' ? '' : location.pathname,
+      })
+    },
   })
   // super properties 로 등록하면 이후 모든 이벤트(자동 pageview 포함)에 자동 첨부된다.
-  mixpanel.register(getClientEnv())
+  mixpanel.register({
+    ...getClientEnv(),
+    $current_url: sanitizeUrl(typeof location === 'undefined' ? '' : location.href),
+  })
   initialized = true
 }
 
@@ -47,5 +75,10 @@ export function track(event: string, properties?: Record<string, unknown>) {
   if (localStorage.getItem('__no_track') === '1') return
   init()
   if (!initialized) return
-  mixpanel.track(event, properties)
+  // 페이지 이동마다 경로가 바뀌므로 발화 시점의 값으로 갱신한다.
+  mixpanel.track(event, {
+    ...properties,
+    $current_url: sanitizeUrl(location.href),
+    current_url_path: location.pathname,
+  })
 }
