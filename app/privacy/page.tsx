@@ -115,7 +115,7 @@ export default function PrivacyPage() {
 
         <Section title="8. 개인정보 보호책임자">
           <p>
-            문의처: <a href="mailto:sw.team.haruharu@gmail.com" className="text-[#2563EB] underline">sw.team.haruharu@gmail.com</a>
+            문의처: <a href="mailto:blueskycuj@naver.com" className="text-[#2563EB] underline">blueskycuj@naver.com</a>
           </p>
           <p className="text-xs text-gray-500">
             개인정보 침해에 관한 상담이 필요하시면 개인정보침해신고센터(privacy.kisa.or.kr, 국번없이 118)
