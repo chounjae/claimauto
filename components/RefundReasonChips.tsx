@@ -65,13 +65,20 @@ export default function RefundReasonChips({ value, onChange, error, onMissingRea
         ))}
       </div>
 
+      {/*
+        가장 많이 막히는 사람에게 가장 눈에 안 띄는 출구를 주면 안 된다.
+        미제출자의 53%(9/17)가 이 필드에서 멈춘다. 목록과 같은 무게의 카드로 올린다.
+      */}
       {onMissingReason && (
         <button
           type="button"
           onClick={onMissingReason}
-          className="mt-2 self-start text-xs text-gray-400 underline underline-offset-2"
+          className="mt-2 flex items-center justify-between rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-left active:bg-gray-100"
         >
-          내 상황이 목록에 없어요
+          <span className="text-sm font-semibold text-gray-700">
+            잘 모르겠어요 / 목록에 없어요
+          </span>
+          <span className="text-xs text-gray-400">알려주세요</span>
         </button>
       )}
 

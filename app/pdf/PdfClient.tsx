@@ -375,9 +375,15 @@ function Preview({
           onClose={() => setAskAfterSave(false)}
           place="pdf_done"
           context={calc.refundReason}
-          title="청구서가 잘 저장되셨나요?"
-          choices={['잘 받았어요', '화면만 열리고 저장이 안 돼요', '내용이 이상해요', '어떻게 보내야 할지 모르겠어요']}
-          placeholder="문제가 있었다면 어떤 화면에서였는지 적어주세요 (선택)"
+          title="이 서비스를 찾기 전에는 어떻게 하려고 하셨나요?"
+          choices={[
+            '그냥 포기하려고 했어요',
+            '헬스장에 직접 말해보려 했어요',
+            '인터넷으로 방법을 찾고 있었어요',
+            '소비자원에 신고하려 했어요',
+            '주변에 물어보려 했어요',
+          ]}
+          placeholder="저장이 안 되는 등 문제가 있었다면 함께 적어주세요 (선택)"
         />
 
         {/*
