@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
-import { track } from '@/lib/analytics'
+import { track, getClientEnv } from '@/lib/analytics'
 
 type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'not_started' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
@@ -19,6 +19,9 @@ interface CalcData {
   penalty: number
   refund: number
   refundReason?: RefundReason
+  /** 사업자 귀책 여부. true면 위약금을 차감이 아니라 가산한다 (고시 ④체육시설업 4항).
+   *  구 URL 호환을 위해 optional. 없으면 false(소비자 귀책)로 본다. */
+  isBusinessFault?: boolean
 }
 
 interface FormData {
@@ -55,27 +58,27 @@ const REASON_LABEL: Record<RefundReason, string> = {
 
 const REASON_BODY: Record<RefundReason, string> = {
   closure:
-    '귀 업체가 폐업하여 계약 서비스를 더 이상 이용할 수 없게 되었습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+    '귀 업체가 폐업하여 계약 서비스를 더 이상 이용할 수 없게 되었습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
   facility_defect:
-    '약정 시설의 훼손 또는 주요 기구의 고장·철거로 인해 계약 목적 달성이 어렵습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+    '약정 시설의 훼손 또는 주요 기구의 고장·철거로 인해 계약 목적 달성이 어렵습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
   service_reduction:
-    '계약 당시 약정된 운영시간이나 서비스 수준이 변경되어 정상적인 이용이 어렵습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+    '계약 당시 약정된 운영시간이나 서비스 수준이 변경되어 정상적인 이용이 어렵습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
   gym_relocation:
-    '헬스장의 이전으로 인해 동일한 방식의 이용이 어렵게 되었습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+    '헬스장의 이전으로 인해 동일한 방식의 이용이 어렵게 되었습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
   price_increase:
-    '계약 당시 약정되지 않은 요금 인상이 이루어져 계약 조건이 변경되었습니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 사업자 귀책에 해당하므로, 위약금 없이 잔여 이용료 전액의 환불을 요청드립니다.',
+    '계약 당시 약정되지 않은 요금 인상이 이루어져 계약 조건이 변경되었습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
   injury:
-    '부상·질병으로 인해 헬스장 이용이 어려워 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
+    '부상·질병으로 인해 헬스장 이용이 어려워 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
   pregnancy:
-    '임신·출산으로 인해 헬스장 이용이 어려워 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
+    '임신·출산으로 인해 헬스장 이용이 어려워 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
   relocation:
-    '이사로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
+    '이사로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
   job_change:
-    '이직·직장 이전으로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
+    '이직·직장 이전으로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
   not_started:
-    '결제 후 이용을 개시하지 않은 상태에서 계약 해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 이용 개시 전 해지이므로 기이용료는 발생하지 않으며, 위약금(납부액의 10% 이내)만을 제외한 금액의 환불을 요청드립니다.',
+    '결제 후 이용을 개시하지 않은 상태에서 계약 해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 이용 개시 전 해지이므로 기이용료는 발생하지 않으며, 위약금(이용료의 1/10)만을 제외한 금액의 환불을 요청드립니다.',
   user_cancel:
-    '개인 사정으로 인해 계약 기간 중 중도해지를 요청드립니다. 공정거래위원회 고시 소비자분쟁해결기준 제56조에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔여금액의 환불을 요청드립니다.',
+    '개인 사정으로 인해 계약 기간 중 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
 }
 
 function validate(f: FormData): FormErrors {
@@ -108,6 +111,12 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
   })
   const [errors, setErrors] = useState<FormErrors>({})
 
+  // PDF 페이지 '도달' 계측. 입력폼 완료 여부와 무관하게 마운트 즉시 1회 발화한다.
+  useEffect(() => {
+    track('pdf_page_arrived', { refund_reason: calc.refundReason })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const set = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
     setErrors((prev) => ({ ...prev, [field]: undefined }))
@@ -119,13 +128,39 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
     if (Object.keys(e).length === 0) setStep('preview')
   }
 
+  // 인쇄 시트가 실제로 떴는지 감지한다.
+  // iOS 인앱 웹뷰에서는 window.print() 가 무반응이라 beforeprint 가 발화하지 않는다.
+  // afterprint 는 최신 Safari 에서 인쇄와 무관하게 즉시 발화할 수 있어 판정에 쓰지 않는다.
+  const handlePrint = () => {
+    const env = getClientEnv()
+    let settled = false
+
+    // 한 번만 발화하고 리스너·타이머를 반드시 정리한다.
+    function settle(event: string) {
+      if (settled) return
+      settled = true
+      window.removeEventListener('beforeprint', handleBeforePrint)
+      clearTimeout(timer)
+      track(event, env)
+    }
+
+    function handleBeforePrint() {
+      settle('pdf_print_sheet_shown')
+    }
+
+    window.addEventListener('beforeprint', handleBeforePrint)
+    const timer = setTimeout(() => settle('pdf_print_no_sheet'), 500)
+
+    window.print()
+  }
+
   if (step === 'preview') {
     return (
       <Preview
         calc={calc}
         form={form}
         onBack={() => setStep('form')}
-        onPrint={() => window.print()}
+        onPrint={handlePrint}
       />
     )
   }
@@ -147,8 +182,8 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
       <div className="mb-5 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 flex items-center gap-2">
         <span className="text-xs font-bold text-blue-500">환불 사유</span>
         <span className="text-sm font-semibold text-blue-800">{calc.refundReason ? REASON_LABEL[calc.refundReason] : ''}</span>
-        {calc.penalty === 0 && (
-          <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">위약금 없음</span>
+        {(calc.isBusinessFault ?? false) && (
+          <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">위약금 가산</span>
         )}
       </div>
 
@@ -295,6 +330,8 @@ function Preview({
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
+    // 주의: 이 이벤트는 페이지 도달이 아니라 PDF 입력폼 완료(미리보기 진입) 시점에 발화한다.
+    // 과거 데이터와의 연속성을 위해 이름을 유지한다. 페이지 도달 계측은 pdf_page_arrived 를 사용하라.
     track('pdf_page_viewed', { refund_reason: calc.refundReason })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -305,7 +342,7 @@ function Preview({
     const deadlineDate = addDays(todayIso, Number(form.deadline))
     const reasonLabel = REASON_LABEL[calc.refundReason ?? 'user_cancel']
     const dailyRate = Math.round(calc.monthlyFee / 30)
-    const noPenalty = calc.penalty === 0
+    const isBusinessFault = calc.isBusinessFault ?? false
 
     const lines = [
       `안녕하세요, ${form.gymName} 담당자님.`,
@@ -317,10 +354,10 @@ function Preview({
       `■ 납부 금액: ${fmt(calc.contractAmount)}원`,
       `■ 실 이용 일수: ${calc.usedDays}일 (${fmt(dailyRate)}원/일 × ${calc.usedDays}일)`,
       `■ 기이용료 차감: -${fmt(calc.usedFee)}원`,
-      `■ 위약금 차감: ${noPenalty ? '없음 (사업자 귀책 사유)' : `-${fmt(calc.penalty)}원 (납부액의 10%)`}`,
+      `■ 위약금: ${isBusinessFault ? `+${fmt(calc.penalty)}원 (사업자 귀책 → 위약금 가산)` : `-${fmt(calc.penalty)}원 (이용료의 1/10)`}`,
       `■ 청구 환불액: ${fmt(calc.refund)}원`,
       '',
-      '[근거] 공정거래위원회 고시 소비자분쟁해결기준 제56조(체육시설업)',
+      '[근거] 공정거래위원회 「소비자분쟁해결기준」(체육시설업)',
       '',
       `수령일로부터 ${form.deadline}일 이내(${deadlineDate}까지) 환불 요청드립니다.`,
     ]
@@ -393,9 +430,34 @@ function Preview({
       <style>{`
         @page { margin: 0; }
         @media print {
-          body * { visibility: hidden; }
-          .print\\:block { visibility: visible !important; position: absolute; top: 0; left: 0; width: 100%; padding: 40px; box-sizing: border-box; }
-          .print\\:block * { visibility: visible !important; }
+          /* 인쇄 시 배경 그라디언트·여백 제거 */
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+            background: #fff !important;
+            background-image: none !important;
+          }
+          /* app/layout.tsx 래퍼의 모바일(375px) 제약 해제.
+             해제하지 않으면 아래 .print\\:block 의 width:100% 가 A4 폭이 아니라 375px 로 잡힌다. */
+          .layout-wrapper {
+            max-width: none !important;
+            min-height: 0 !important;
+            position: static !important;
+            margin: 0 !important;
+            background: #fff !important;
+            box-shadow: none !important;
+          }
+          /* visibility 기반 대신 display 기반.
+             화면용 컨테이너에는 이미 print:hidden(display:none)이 걸려 있으므로
+             body * { visibility: hidden } 이 필요 없다.
+             position:absolute 를 쓰면 정상 흐름에서 빠져 페이지네이션이 깨지므로 쓰지 않는다. */
+          .print\\:block {
+            display: block !important;
+            width: 100%;
+            padding: 40px;
+            box-sizing: border-box;
+          }
         }
       `}</style>
     </>
@@ -412,7 +474,7 @@ function DocumentContent({
 }) {
   const dailyRate = Math.round(calc.monthlyFee / 30)
   const deadlineDate = addDays(todayIso, Number(form.deadline))
-  const noPenalty = calc.penalty === 0
+  const isBusinessFault = calc.isBusinessFault ?? false
 
   return (
     <div className="px-6 py-7 text-gray-900 text-sm leading-relaxed">
@@ -421,7 +483,7 @@ function DocumentContent({
       <div className="text-center mb-6 pb-5 border-b-2 border-gray-900">
         <h1 className="text-xl font-extrabold tracking-tight">헬스장 이용계약 환불 요청서</h1>
         <p className="mt-1 text-xs text-gray-500">
-          소비자분쟁해결기준 제56조(체육시설업) 기준 산정
+          「소비자분쟁해결기준」(체육시설업) 기준 산정
         </p>
       </div>
 
@@ -494,13 +556,13 @@ function DocumentContent({
           </div>
           <div className="flex justify-between border-b border-gray-100 py-1">
             <span className="text-gray-600">
-              ③ 위약금 차감
+              ③ 위약금 {isBusinessFault ? '가산' : '차감'}
               <span className="block text-gray-400 text-[10px]">
-                {noPenalty ? '사업자 귀책 사유 → 위약금 없음' : '납부 금액의 10% 이내 (법정 상한)'}
+                {isBusinessFault ? '사업자 귀책 사유 → 위약금 가산 (이용료의 1/10)' : '이용료의 1/10'}
               </span>
             </span>
-            <span className={`font-semibold ${noPenalty ? 'text-emerald-600' : 'text-red-600'}`}>
-              {noPenalty ? '없음' : `−${fmt(calc.penalty)}원`}
+            <span className={`font-semibold ${isBusinessFault ? 'text-emerald-600' : 'text-red-600'}`}>
+              {isBusinessFault ? `+${fmt(calc.penalty)}원` : `−${fmt(calc.penalty)}원`}
             </span>
           </div>
           <div className="flex justify-between pt-2 font-bold">
@@ -513,8 +575,8 @@ function DocumentContent({
       {/* 3. 법적 근거 */}
       <DocSection num="3" title="법적 근거">
         <div className="px-3 py-3 text-xs leading-6 text-gray-700 space-y-1">
-          <p><span className="font-semibold">가.</span> 공정거래위원회 고시 소비자분쟁해결기준 제56조(체육시설업): 계속적 역무계약에서 소비자 중도해지 시 기이용료와 위약금(납부액의 10% 이내)을 공제한 잔액을 환불하여야 한다. 사업자 귀책 사유 시 위약금 없이 잔액 전액 환불 의무.</p>
-          <p><span className="font-semibold">나.</span> 체육시설의 설치·이용에 관한 법률 제27조: 체육시설 이용계약은 소비자 요청 시 언제든지 해지 가능하며, 사업자는 잔여 이용료를 반환할 의무를 부담한다.</p>
+          <p><span className="font-semibold">가.</span> 공정거래위원회 「소비자분쟁해결기준」(체육시설업): 계속적 역무계약에서 소비자 중도해지 시 기이용료와 위약금(이용료의 1/10)을 공제한 잔액을 환불하여야 한다. 사업자 귀책 사유 시 위약금 없이 잔액 전액 환불 의무.</p>
+          <p><span className="font-semibold">나.</span> 「체육시설의 설치·이용에 관한 법률」 제22조 및 같은 법 시행령 제21조의2: 체육시설업자는 회원과 약정한 사항을 지켜야 하며, 회원 모집·계약 및 반환에 관하여 대통령령으로 정하는 사항을 준수하여야 한다.</p>
           <p><span className="font-semibold">다.</span> 방문판매 등에 관한 법률 제31조·제32조: 계속적 역무계약의 중도해지 및 잔액 환불 권리를 보장한다.</p>
         </div>
       </DocSection>

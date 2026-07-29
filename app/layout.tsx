@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://claimauto.app'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://claimauto.aphelion.ai.kr'
 const TITLE = 'ClaimAuto — 헬스장 환불 청구 자동화'
 const DESCRIPTION = '3분 만에 법적 근거가 담긴 환급 청구서를 만드세요. 공정위 고시 기반 계산, PDF 즉시 발급, 소비자원 바로 연결.'
 
@@ -34,7 +34,12 @@ export const metadata: Metadata = {
     canonical: SITE_URL,
   },
   other: {
-    'naver-site-verification': 'naver_site_verification_token',
+    // 네이버 서치어드바이저 등록 후 NEXT_PUBLIC_NAVER_SITE_VERIFICATION 을 설정한다.
+    // 값이 없으면 태그 자체를 내보내지 않는다 — 플레이스홀더 문자열을 그대로 노출하면
+    // 검증에 실패할 뿐 아니라 잘못된 값이 색인된다.
+    ...(process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION
+      ? { 'naver-site-verification': process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION }
+      : {}),
     'google-site-verification': 'MuG7QuyMYNNuqErNDo0oi1fuM0E7kPsXskw_0n-F9o4',
   },
 }
@@ -64,7 +69,7 @@ const jsonLd = {
           name: '헬스장 중도해지 시 환불받을 수 있나요?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: '네. 공정거래위원회 고시 소비자분쟁해결기준 제56조(체육시설업)에 따라 기이용료와 위약금(납부액의 10% 이내)을 제외한 잔액을 환불받을 수 있습니다.',
+            text: '네. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔액을 환불받을 수 있습니다.',
           },
         },
         {
@@ -88,7 +93,7 @@ const jsonLd = {
           name: '헬스장이 폐업했는데 환불을 받을 수 있나요?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: '폐업은 사업자 귀책 사유이므로 위약금 없이 잔여 이용료 전액을 환불받을 수 있습니다. 카드 결제 시 카드사 차지백도 병행 가능합니다.',
+            text: '폐업은 사업자 귀책 사유이므로 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액을 환불받을 수 있습니다. 카드 결제 시 카드사 차지백도 병행 가능합니다.',
           },
         },
       ],
@@ -106,7 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50">
-        <div className="mx-auto max-w-[375px] min-h-screen relative bg-[#F8FAFC] shadow-[0_0_60px_rgba(0,0,0,0.08)]">
+        <div className="layout-wrapper mx-auto max-w-[375px] min-h-screen relative bg-[#F8FAFC] shadow-[0_0_60px_rgba(0,0,0,0.08)]">
           {children}
         </div>
       </body>

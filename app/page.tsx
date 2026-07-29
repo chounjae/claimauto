@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import Logo from '@/components/Logo'
 import TrustBadges from '@/components/TrustBadges'
 import CTAButton from '@/components/CTAButton'
@@ -30,6 +31,17 @@ export default function OnboardingPage() {
         {/* 신뢰 지표 */}
         <TrustBadges />
       </section>
+
+      {/* 면책 및 처리방침 고지 */}
+      <footer className="pb-28 pt-4 text-center text-[11px] leading-5 text-gray-400">
+        <p>
+          본 서비스는 공개된 법령·고시를 바탕으로 금액을 계산하고 서식을 제공하는 도구이며,
+          법률 자문을 제공하지 않습니다.
+        </p>
+        <Link href="/privacy" className="mt-2 inline-block underline">
+          개인정보 처리방침
+        </Link>
+      </footer>
 
       {/* 하단 고정 CTA */}
       <CTAButton href="/form" label="무료 환급액 계산하기" sublabel="3초 소요 · 무료 · 회원가입 불필요" />

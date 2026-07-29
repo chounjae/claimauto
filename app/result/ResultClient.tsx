@@ -21,6 +21,9 @@ interface CalcResult {
   paymentType: string
   purchaseType: 'regular' | 'discounted'
   refundReason?: RefundReason
+  /** 사업자 귀책 여부. true면 위약금을 차감이 아니라 가산한다 (고시 ④체육시설업 4항).
+   *  구 URL 호환을 위해 optional. 없으면 false(소비자 귀책)로 본다. */
+  isBusinessFault?: boolean
 }
 
 const REASON_LABEL: Record<RefundReason, string> = {
@@ -41,7 +44,7 @@ const PERSONAL_REASONS = new Set<RefundReason>(['not_started', 'injury', 'pregna
 
 export default function ResultClient({ result }: { result: CalcResult }) {
   const fmt = (n: number) => n.toLocaleString()
-  const noPenalty = result.penalty === 0
+  const isBusinessFault = result.isBusinessFault ?? false
   const isNotStarted = result.refundReason === 'not_started'
   const isPersonal = result.refundReason ? PERSONAL_REASONS.has(result.refundReason) : false
 
@@ -50,7 +53,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
       refund_amount: result.refund,
       refund_reason: result.refundReason,
       purchase_type: result.purchaseType,
-      no_penalty: noPenalty,
+      is_business_fault: isBusinessFault,
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -66,6 +69,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
     usedFee: String(result.usedFee),
     penalty: String(result.penalty),
     refund: String(result.refund),
+    isBusinessFault: String(isBusinessFault),
     ...(result.refundReason && { refundReason: result.refundReason }),
   })
 
@@ -86,7 +90,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
           <CountUp target={result.refund} />
           <span className="ml-1 text-2xl font-semibold">원</span>
         </p>
-        <p className="mt-2 text-xs opacity-70">공정거래위원회 고시 제56조 기준</p>
+        <p className="mt-2 text-xs opacity-70">공정거래위원회 「소비자분쟁해결기준」(체육시설업) 기준</p>
       </div>
 
       {/* 할인 구매 안내 */}
@@ -114,10 +118,10 @@ export default function ResultClient({ result }: { result: CalcResult }) {
           />
           <Row
             label="위약금"
-            sub={noPenalty ? '사업자 귀책 → 위약금 없음' : '계약금의 10% (법정 상한)'}
-            value={noPenalty ? '없음' : `−${fmt(result.penalty)}원`}
-            neg={!noPenalty}
-            accent={noPenalty}
+            sub={isBusinessFault ? '사업자 귀책 → 위약금을 받습니다 (이용료의 1/10)' : '이용료의 1/10'}
+            value={isBusinessFault ? `+${fmt(result.penalty)}원` : `−${fmt(result.penalty)}원`}
+            neg={!isBusinessFault}
+            accent={isBusinessFault}
           />
           <div className="flex items-center justify-between px-4 py-3 bg-blue-50">
             <span className="text-sm font-bold text-blue-700">환급액</span>
@@ -131,8 +135,8 @@ export default function ResultClient({ result }: { result: CalcResult }) {
         <div className="mb-4 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-xs text-gray-600 leading-5">
           <p className="font-semibold text-gray-800 mb-1">위약금 10% 적용 근거</p>
           <p>
-            공정거래위원회 고시 소비자분쟁해결기준 제56조(체육시설업)는 소비자 사정에 의한 중도해지 시
-            납부금의 10% 이내 위약금 공제를 규정합니다. 부상·임신·이사 등 개인 사정에 대한 별도 면제
+            공정거래위원회 「소비자분쟁해결기준」(체육시설업)는 소비자 사정에 의한 중도해지 시
+            위약금(이용료의 1/10) 공제를 규정합니다. 부상·임신·이사 등 개인 사정에 대한 별도 면제
             조항은 없으므로 위약금이 동일하게 적용됩니다.
           </p>
         </div>
