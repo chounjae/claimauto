@@ -4,81 +4,30 @@ import { useState, useEffect } from 'react'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 import { track, getClientEnv } from '@/lib/analytics'
+import { navigateTo } from '@/lib/navigate'
+import {
+  addDays,
+  buildPdfQuery,
+  fmt,
+  formatDate,
+  REASON_BODY,
+  REASON_LABEL,
+  todayIsoSeoul,
+  type CalcData,
+  type ClaimantInfo,
+} from '@/lib/refund-doc'
 
-type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'not_started' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
-
-interface CalcData {
-  contractAmount: number
-  monthlyFee: number
-  startDate: string
-  stopDate: string
-  paymentType: string
-  purchaseType: 'regular' | 'discounted'
-  usedDays: number
-  usedFee: number
-  penalty: number
-  refund: number
-  refundReason?: RefundReason
-  /** 사업자 귀책 여부. true면 위약금을 차감이 아니라 가산한다 (고시 ④체육시설업 4항).
-   *  구 URL 호환을 위해 optional. 없으면 false(소비자 귀책)로 본다. */
-  isBusinessFault?: boolean
-}
-
-interface FormData {
-  name: string
-  phone: string
-  myAddress: string
-  gymName: string
-  gymAddress: string
-  staffName: string
-  bankAccount: string
-  deadline: '7' | '14'
-}
+/**
+ * 문서 문구·계산·날짜 헬퍼는 `lib/refund-doc.ts` 로 옮겼다.
+ * 이 미리보기와 서버 PDF(`app/api/pdf/route.ts`)가 반드시 같은 문장을 써야 하기 때문이다.
+ */
+type FormData = ClaimantInfo
 
 interface FormErrors {
   name?: string
   phone?: string
   gymName?: string
   gymAddress?: string
-}
-
-const REASON_LABEL: Record<RefundReason, string> = {
-  closure: '헬스장 폐업',
-  facility_defect: '시설 훼손 / 기구 고장·철거',
-  service_reduction: '운영시간·서비스 축소',
-  gym_relocation: '헬스장 이전 (접근 불가)',
-  price_increase: '약정 외 요금 인상',
-  not_started: '이용 개시 전 해지',
-  injury: '부상 / 질병',
-  pregnancy: '임신 / 출산',
-  relocation: '이사 (주거지 이전)',
-  job_change: '이직 / 직장 이전',
-  user_cancel: '단순 변심',
-}
-
-const REASON_BODY: Record<RefundReason, string> = {
-  closure:
-    '귀 업체가 폐업하여 계약 서비스를 더 이상 이용할 수 없게 되었습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
-  facility_defect:
-    '약정 시설의 훼손 또는 주요 기구의 고장·철거로 인해 계약 목적 달성이 어렵습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
-  service_reduction:
-    '계약 당시 약정된 운영시간이나 서비스 수준이 변경되어 정상적인 이용이 어렵습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
-  gym_relocation:
-    '헬스장의 이전으로 인해 동일한 방식의 이용이 어렵게 되었습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
-  price_increase:
-    '계약 당시 약정되지 않은 요금 인상이 이루어져 계약 조건이 변경되었습니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 사업자 귀책에 해당하므로, 잔여 이용료에 위약금(이용료의 1/10)을 더한 금액의 환불을 요청드립니다.',
-  injury:
-    '부상·질병으로 인해 헬스장 이용이 어려워 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
-  pregnancy:
-    '임신·출산으로 인해 헬스장 이용이 어려워 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
-  relocation:
-    '이사로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
-  job_change:
-    '이직·직장 이전으로 인해 헬스장 방문이 어렵게 되어 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
-  not_started:
-    '결제 후 이용을 개시하지 않은 상태에서 계약 해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 이용 개시 전 해지이므로 기이용료는 발생하지 않으며, 위약금(이용료의 1/10)만을 제외한 금액의 환불을 요청드립니다.',
-  user_cancel:
-    '개인 사정으로 인해 계약 기간 중 중도해지를 요청드립니다. 공정거래위원회 「소비자분쟁해결기준」(체육시설업)에 따라 기이용료와 위약금(이용료의 1/10)을 제외한 잔여금액의 환불을 요청드립니다.',
 }
 
 function validate(f: FormData): FormErrors {
@@ -88,19 +37,6 @@ function validate(f: FormData): FormErrors {
   if (!f.gymName.trim()) e.gymName = '업체명을 입력해주세요'
   if (!f.gymAddress.trim()) e.gymAddress = '업체 주소를 입력해주세요'
   return e
-}
-
-function fmt(n: number) { return n.toLocaleString() }
-
-function formatDate(iso: string) {
-  const [y, m, d] = iso.split('-')
-  return `${y}년 ${Number(m)}월 ${Number(d)}일`
-}
-
-function addDays(iso: string, days: number) {
-  const d = new Date(iso)
-  d.setDate(d.getDate() + days)
-  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 export default function PdfClient({ calc }: { calc: CalcData }) {
@@ -128,39 +64,12 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
     if (Object.keys(e).length === 0) setStep('preview')
   }
 
-  // 인쇄 시트가 실제로 떴는지 감지한다.
-  // iOS 인앱 웹뷰에서는 window.print() 가 무반응이라 beforeprint 가 발화하지 않는다.
-  // afterprint 는 최신 Safari 에서 인쇄와 무관하게 즉시 발화할 수 있어 판정에 쓰지 않는다.
-  const handlePrint = () => {
-    const env = getClientEnv()
-    let settled = false
-
-    // 한 번만 발화하고 리스너·타이머를 반드시 정리한다.
-    function settle(event: string) {
-      if (settled) return
-      settled = true
-      window.removeEventListener('beforeprint', handleBeforePrint)
-      clearTimeout(timer)
-      track(event, env)
-    }
-
-    function handleBeforePrint() {
-      settle('pdf_print_sheet_shown')
-    }
-
-    window.addEventListener('beforeprint', handleBeforePrint)
-    const timer = setTimeout(() => settle('pdf_print_no_sheet'), 500)
-
-    window.print()
-  }
-
   if (step === 'preview') {
     return (
       <Preview
         calc={calc}
         form={form}
         onBack={() => setStep('form')}
-        onPrint={handlePrint}
       />
     )
   }
@@ -320,14 +229,20 @@ function Field({
 }
 
 function Preview({
-  calc, form, onBack, onPrint,
+  calc, form, onBack,
 }: {
   calc: CalcData
   form: FormData
   onBack: () => void
-  onPrint: () => void
 }) {
   const [copied, setCopied] = useState(false)
+  const [saving, setSaving] = useState(false)
+  // 인쇄 버튼은 인앱 웹뷰가 아닐 때만 보여준다.
+  // iOS 인앱 웹뷰(WKWebView)에서 window.print() 는 아무 반응이 없어(2026-07-30 실측: 인쇄 시트 0/7건)
+  // 눌러도 아무 일도 일어나지 않는 죽은 버튼이 된다.
+  // 이 미리보기는 사용자가 버튼을 누른 뒤에만 마운트되므로 서버 렌더링을 타지 않는다.
+  // 따라서 초기값에서 바로 UA 를 봐도 하이드레이션 불일치가 없다.
+  const [canPrint] = useState(() => !getClientEnv().is_inapp)
 
   useEffect(() => {
     // 주의: 이 이벤트는 페이지 도달이 아니라 PDF 입력폼 완료(미리보기 진입) 시점에 발화한다.
@@ -335,8 +250,69 @@ function Preview({
     track('pdf_page_viewed', { refund_reason: calc.refundReason })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
-  const todayIso = new Date().toISOString().split('T')[0]
+  // 미리보기와 서버 PDF 가 같은 날짜를 쓰도록 양쪽 다 한국 시간 기준으로 계산한다.
+  const todayIso = todayIsoSeoul()
+  const today = formatDate(todayIso)
+
+  /**
+   * 서버가 만든 PDF 로 이동한다.
+   *
+   * window.print() 를 쓰지 않는다. iOS 인앱 웹뷰에서 무동작이기 때문이다.
+   * 먼저 fetch 로 생성 성공 여부를 계측(`pdf_generated`)한 뒤 같은 URL 로 이동한다.
+   * 응답에 `Cache-Control: private, max-age=60` 이 있어 이동 시 재생성되지 않는다.
+   * 계측에 실패하더라도 이동은 반드시 수행한다 — 저장이 계측보다 중요하다.
+   */
+  const handleSave = async () => {
+    if (saving) return
+    setSaving(true)
+
+    const env = getClientEnv()
+    const url = `/api/pdf?${buildPdfQuery(calc, form)}`
+
+    try {
+      const res = await fetch(url)
+      if (res.ok) {
+        // 응답을 끝까지 읽어야 브라우저 HTTP 캐시에 저장된다.
+        const blob = await res.blob()
+        track('pdf_generated', { ...env, refund_reason: calc.refundReason, bytes: blob.size })
+      } else {
+        track('pdf_generate_failed', { ...env, refund_reason: calc.refundReason, status: res.status })
+      }
+    } catch {
+      // 네트워크 실패. 개인정보가 섞일 수 있으므로 오류 내용은 전송하지 않는다.
+      track('pdf_generate_failed', { ...env, refund_reason: calc.refundReason, status: 0 })
+    }
+
+    // 인앱 웹뷰든 아니든 동일하게 이동시킨다. 호환성이 가장 높은 방식이다.
+    navigateTo(url)
+  }
+
+  /**
+   * 데스크톱 등 순정 브라우저 전용 보조 동작.
+   * `pdf_print_sheet_shown` / `pdf_print_no_sheet` 계측은 이 버튼에서만 의미가 있어 여기 남긴다.
+   */
+  const handlePrint = () => {
+    const env = getClientEnv()
+    let settled = false
+
+    // 한 번만 발화하고 리스너·타이머를 반드시 정리한다.
+    function settle(event: string) {
+      if (settled) return
+      settled = true
+      window.removeEventListener('beforeprint', handleBeforePrint)
+      clearTimeout(timer)
+      track(event, env)
+    }
+
+    function handleBeforePrint() {
+      settle('pdf_print_sheet_shown')
+    }
+
+    window.addEventListener('beforeprint', handleBeforePrint)
+    const timer = setTimeout(() => settle('pdf_print_no_sheet'), 500)
+
+    window.print()
+  }
 
   const copyKakaoMessage = async () => {
     const deadlineDate = addDays(todayIso, Number(form.deadline))
@@ -395,14 +371,24 @@ function Preview({
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-10 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent flex flex-col gap-2">
           <button
             type="button"
+            disabled={saving}
             onClick={() => {
               track('pdf_save_clicked', { refund_reason: calc.refundReason })
-              onPrint()
+              void handleSave()
             }}
-            className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#10B981] text-white text-base font-bold shadow-lg"
+            className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#10B981] text-white text-base font-bold shadow-lg disabled:opacity-70"
           >
-            PDF 저장 / 인쇄
+            {saving ? 'PDF 만드는 중...' : 'PDF 저장'}
           </button>
+          {canPrint && (
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="flex h-[44px] w-full items-center justify-center rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-700"
+            >
+              인쇄
+            </button>
+          )}
           <button
             type="button"
             onClick={async () => {

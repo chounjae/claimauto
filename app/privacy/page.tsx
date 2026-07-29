@@ -29,14 +29,24 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="2. 이용자가 입력한 정보는 서버에 저장되지 않습니다">
+        <Section title="2. 청구서 입력 정보는 PDF 생성에만 쓰이며 저장되지 않습니다">
           <p>
             청구서 작성을 위해 입력하는 <strong>이름, 연락처, 신청인 주소, 업체명, 업체 주소,
-            담당자명, 환불 계좌</strong>는 이용자의 브라우저 안에서만 처리되며,
-            서비스 서버로 전송되거나 저장되지 않습니다.
+            담당자명, 환불 계좌</strong>는 기본적으로 이용자의 브라우저 안에서만 처리됩니다.
           </p>
           <p>
-            브라우저를 닫거나 새로고침하면 해당 정보는 즉시 사라집니다.
+            다만 <strong>PDF 저장 버튼을 누르는 순간</strong>, 청구서를 만들기 위해 위 정보가
+            서비스 서버(Vercel)로 <strong>일시적으로 전송</strong>됩니다. 서버는 전송받은 정보를
+            요청을 처리하는 동안 메모리에서만 사용해 PDF를 만들어 되돌려 주며,
+            <strong> 데이터베이스나 파일로 저장하지 않고 응답 직후 폐기</strong>합니다.
+            별도의 서버 접근 기록(로그)에 입력값을 기록하지도 않습니다.
+          </p>
+          <p className="text-xs text-gray-500">
+            다만 요청 주소(URL)에 위 정보가 포함되므로, 호스팅 사업자(Vercel)의 접속 기록에
+            일시적으로 남을 수 있습니다. 해당 기록은 Vercel의 보관 정책에 따라 자동 삭제됩니다.
+          </p>
+          <p>
+            브라우저를 닫거나 새로고침하면 입력한 정보는 즉시 사라집니다.
             생성된 PDF는 이용자의 기기에만 저장됩니다.
           </p>
         </Section>
@@ -85,7 +95,7 @@ export default function PrivacyPage() {
                 </tr>
                 <tr>
                   <td className="border border-gray-200 px-2 py-1">Vercel Inc.</td>
-                  <td className="border border-gray-200 px-2 py-1">웹사이트 호스팅</td>
+                  <td className="border border-gray-200 px-2 py-1">웹사이트 호스팅, PDF 청구서 생성(저장 없음)</td>
                   <td className="border border-gray-200 px-2 py-1">미국 등</td>
                 </tr>
               </tbody>
@@ -96,7 +106,8 @@ export default function PrivacyPage() {
         <Section title="6. 보유 및 이용 기간">
           <p>
             분석 정보는 수집일로부터 <strong>1년</strong>이 지나면 파기합니다.
-            이용자가 입력한 청구서 정보는 애초에 저장되지 않으므로 별도 파기 절차가 없습니다.
+            이용자가 입력한 청구서 정보는 PDF를 만들어 응답한 직후 폐기되며,
+            서비스가 별도로 보관하는 사본이 없으므로 추가 파기 절차가 없습니다.
           </p>
         </Section>
 
