@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 import CountUp from '@/components/CountUp'
 import { track } from '@/lib/analytics'
+import FeedbackSheet from '@/components/FeedbackSheet'
 
 type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'not_started' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
@@ -45,6 +46,7 @@ const PERSONAL_REASONS = new Set<RefundReason>(['not_started', 'injury', 'pregna
 export default function ResultClient({ result }: { result: CalcResult }) {
   const fmt = (n: number) => n.toLocaleString()
   const isBusinessFault = result.isBusinessFault ?? false
+  const [askExit, setAskExit] = useState(false)
   const isNotStarted = result.refundReason === 'not_started'
   const isPersonal = result.refundReason ? PERSONAL_REASONS.has(result.refundReason) : false
 
@@ -227,8 +229,36 @@ export default function ResultClient({ result }: { result: CalcResult }) {
         </Link>
         <p className="mt-2 text-center text-xs text-gray-400">
           <Link href="/form" className="underline underline-offset-2">다시 계산하기</Link>
+          <span className="mx-1.5">·</span>
+          {/*
+            결과를 본 31명 중 14명이 PDF 로 넘어가지 않는다. 이유를 지표로는 알 수 없어
+            여기서 직접 묻는다. 눌러야 열리는 링크라 진행하는 사람을 방해하지 않는다.
+          */}
+          <button
+            type="button"
+            onClick={() => setAskExit(true)}
+            className="underline underline-offset-2"
+          >
+            지금은 안 만드시나요?
+          </button>
         </p>
       </div>
+
+      <FeedbackSheet
+        open={askExit}
+        onClose={() => setAskExit(false)}
+        place="result_exit"
+        context={result.refundReason}
+        title="청구서를 만들지 않으신 이유가 있을까요?"
+        choices={[
+          '금액이 생각보다 적어서',
+          '절차가 복잡해 보여서',
+          '나중에 하려고',
+          '이걸로 될지 확신이 안 서서',
+          '이미 다른 방법을 쓰는 중',
+        ]}
+        placeholder="더 하고 싶은 말씀이 있으면 적어주세요 (선택)"
+      />
     </main>
   )
 }
