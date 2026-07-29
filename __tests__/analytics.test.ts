@@ -28,3 +28,36 @@ describe('getClientEnv', () => {
     expect(env.is_ios).toBe(expectIos)
   })
 })
+
+describe('인앱 웹뷰 판별 — 실측 회귀 케이스', () => {
+  const set = (ua: string) =>
+    Object.defineProperty(window.navigator, 'userAgent', { value: ua, configurable: true })
+
+  it('구글 앱(GSA)은 Safari/ 토큰이 있어도 인앱으로 판별한다', () => {
+    // 2026-07-30 실측 UA. 이 케이스를 놓쳐 인앱 유입이 순정 브라우저로 집계됐다.
+    set('Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/430.3.945886556 Mobile/15E148 Safari/604.1')
+    const e = getClientEnv()
+    expect(e.is_inapp).toBe(true)
+    expect(e.is_ios).toBe(true)
+    expect(e.inapp_app).toBe('GSA/')
+  })
+
+  it('순정 iOS Safari 는 인앱이 아니다', () => {
+    set('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1')
+    const e = getClientEnv()
+    expect(e.is_inapp).toBe(false)
+    expect(e.inapp_app).toBeNull()
+  })
+
+  it('크롬 iOS(CriOS)는 인앱으로 판별한다', () => {
+    set('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/120.0 Mobile/15E148 Safari/604.1')
+    expect(getClientEnv().inapp_app).toBe('CriOS')
+  })
+
+  it('안드로이드 크롬은 인앱이 아니다', () => {
+    set('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36')
+    const e = getClientEnv()
+    expect(e.is_inapp).toBe(false)
+    expect(e.is_ios).toBe(false)
+  })
+})

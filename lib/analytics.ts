@@ -2,15 +2,43 @@ import mixpanel from 'mixpanel-browser'
 
 let initialized = false
 
-/** 인앱 웹뷰 판별용 User-Agent 토큰 */
+/**
+ * 인앱 웹뷰 판별용 User-Agent 토큰
+ *
+ * ⚠️ 2026-07-30 실측으로 드러난 함정:
+ * 구글 앱(GSA)의 iOS UA 는 `Safari/604.1` 토큰을 그대로 포함한다.
+ *
+ *   Mozilla/5.0 (iPhone; ...) AppleWebKit/605.1.15 (KHTML, like Gecko)
+ *   GSA/430.3.945886556 Mobile/15E148 Safari/604.1
+ *
+ * 따라서 "iOS 인데 Safari/ 가 없으면 웹뷰"라는 판정만으로는 잡히지 않는다.
+ * 앱 식별 토큰을 명시적으로 나열해야 한다.
+ */
 const INAPP_UA_TOKENS = [
-  'KAKAOTALK',
+  // 한국 사용자 비중이 높은 순
+  'KAKAOTALK',   // 카카오톡
+  'NAVER',       // 네이버 앱
+  'DaumApps',    // 다음 앱
+  'Whale',       // 웨일 브라우저(iOS 는 WKWebView)
+  'Line',        // 라인
+  'Everytime',   // 에브리타임
+  // 글로벌
+  'GSA/',        // Google Search App ← 2026-07-30 실측으로 추가
   'Instagram',
-  'FBAV',
-  'FB_IAB',
-  'NAVER',
-  'DaumApps',
-  'Everytime',
+  'FBAV',        // Facebook 앱
+  'FB_IAB',      // Facebook in-app browser
+  'FBAN',        // Facebook 앱(다른 표기)
+  'Twitter',
+  'TikTok',
+  'MicroMessenger', // 위챗
+  'Snapchat',
+  'LinkedInApp',
+  'Pinterest',
+  // iOS 서드파티 브라우저 — 전부 WKWebView 라 window.print() 동작이 Safari 와 다르다
+  'CriOS',       // 크롬 iOS
+  'FxiOS',       // 파이어폭스 iOS
+  'EdgiOS',      // 엣지 iOS
+  'OPiOS',       // 오페라 iOS
 ]
 
 /** 모든 이벤트에 공통으로 붙는 클라이언트 환경 속성 */
@@ -18,15 +46,18 @@ export type ClientEnv = {
   ua: string
   is_inapp: boolean
   is_ios: boolean
+  /** 어느 앱의 웹뷰인지. 판별되지 않으면 null */
+  inapp_app: string | null
 }
 
 export function getClientEnv(): ClientEnv {
   const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent
   const is_ios = /iPad|iPhone|iPod/.test(ua)
-  const hasInappToken = INAPP_UA_TOKENS.some((token) => ua.includes(token))
-  // iOS 인데 UA 에 Safari/ 토큰이 없으면 WKWebView(인앱 브라우저)로 간주한다.
-  const is_inapp = hasInappToken || (is_ios && !ua.includes('Safari/'))
-  return { ua, is_inapp, is_ios }
+  const inapp_app = INAPP_UA_TOKENS.find((token) => ua.includes(token)) ?? null
+  // 토큰이 없어도, iOS 인데 Safari/ 토큰이 빠져 있으면 WKWebView 로 본다.
+  // (토큰을 모르는 앱을 잡기 위한 보조 규칙)
+  const is_inapp = inapp_app !== null || (is_ios && !ua.includes('Safari/'))
+  return { ua, is_inapp, is_ios, inapp_app }
 }
 
 /**
