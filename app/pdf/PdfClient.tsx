@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 import { track, getClientEnv, getDistinctId } from '@/lib/analytics'
+import FeedbackSheet from '@/components/FeedbackSheet'
 import {
   addDays,
   buildPdfQuery,
@@ -237,6 +238,9 @@ function Preview({
   const [copied, setCopied] = useState(false)
   const [saving, setSaving] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  // 저장 버튼을 누른 뒤 이 페이지로 되돌아온 사람에게만 묻는다.
+  // PDF 는 새 화면으로 열리므로, 돌아왔다는 건 뭔가 뜻대로 안 됐을 가능성이 있다.
+  const [askAfterSave, setAskAfterSave] = useState(false)
   // 인쇄 버튼은 인앱 웹뷰가 아닐 때만 보여준다.
   // iOS 인앱 웹뷰(WKWebView)에서 window.print() 는 아무 반응이 없어(2026-07-30 실측: 인쇄 시트 0/7건)
   // 눌러도 아무 일도 일어나지 않는 죽은 버튼이 된다.
@@ -271,6 +275,8 @@ function Preview({
     setSaving(true)
     track('pdf_save_clicked', { ...getClientEnv(), refund_reason: calc.refundReason })
     formRef.current?.submit()
+    // 폼 제출로 PDF 화면이 뜬다. 뒤로 돌아오면 8초 뒤 확인 질문을 띄운다.
+    setTimeout(() => { setSaving(false); setAskAfterSave(true) }, 8000)
   }
 
   /**
@@ -363,6 +369,16 @@ function Preview({
           <p>💬 <strong>카카오톡 전송 추천</strong> — 읽음 표시가 발송 증거가 됩니다. 스크린샷을 저장해두세요.</p>
           <p>📮 우체국 내용증명으로 발송하려면 <strong>인터넷우체국(epost.go.kr)</strong>을 이용하세요. 신청인 주소를 미리 입력해두면 편리합니다.</p>
         </div>
+
+        <FeedbackSheet
+          open={askAfterSave}
+          onClose={() => setAskAfterSave(false)}
+          place="pdf_done"
+          context={calc.refundReason}
+          title="청구서가 잘 저장되셨나요?"
+          choices={['잘 받았어요', '화면만 열리고 저장이 안 돼요', '내용이 이상해요', '어떻게 보내야 할지 모르겠어요']}
+          placeholder="문제가 있었다면 어떤 화면에서였는지 적어주세요 (선택)"
+        />
 
         {/*
           PDF 요청용 숨김 폼.

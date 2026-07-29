@@ -38,9 +38,11 @@ export default function OnboardingPage() {
           본 서비스는 공개된 법령·고시를 바탕으로 금액을 계산하고 서식을 제공하는 도구이며,
           법률 자문을 제공하지 않습니다.
         </p>
-        <Link href="/privacy" className="mt-2 inline-block underline">
-          개인정보 처리방침
-        </Link>
+        <div className="mt-2 flex items-center justify-center gap-3">
+          <Link href="/privacy" className="underline">개인정보 처리방침</Link>
+          <span>·</span>
+          <Link href="/feedback" className="underline">의견 보내기</Link>
+        </div>
       </footer>
 
       {/* 하단 고정 CTA */}

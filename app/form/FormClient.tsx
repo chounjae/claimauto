@@ -10,6 +10,7 @@ import MonthChips from '@/components/MonthChips'
 import DatePicker from '@/components/DatePicker'
 import PaymentChips, { type PaymentType } from '@/components/PaymentChips'
 import RefundReasonChips, { type RefundReason } from '@/components/RefundReasonChips'
+import FeedbackSheet from '@/components/FeedbackSheet'
 
 const START_DATE_SHORTCUTS = [
   { label: '1개월 전', months: 1 },
@@ -57,6 +58,7 @@ function validate(
 }
 
 export default function FormClient() {
+  const [askMissingReason, setAskMissingReason] = useState(false)
   const router = useRouter()
   const [totalAmount, setTotalAmount] = useState('')
   const [months, setMonths] = useState<number | null>(null)
@@ -250,6 +252,7 @@ export default function FormClient() {
         </div>
 
         <RefundReasonChips
+          onMissingReason={() => setAskMissingReason(true)}
           value={refundReason}
           onChange={(v) => {
             setRefundReason(v)
@@ -269,6 +272,20 @@ export default function FormClient() {
           계산하기
         </button>
       </div>
+
+      <FeedbackSheet
+        open={askMissingReason}
+        onClose={() => setAskMissingReason(false)}
+        place="reason_missing"
+        title="어떤 상황이신가요?"
+        choices={[
+          '목록에 없는 사유예요',
+          '두 가지 이상 해당돼요',
+          '내 경우가 되는지 모르겠어요',
+          'PT·필라테스 등 다른 종목이에요',
+        ]}
+        placeholder="상황을 적어주시면 기준을 찾아 안내해드리겠습니다 (선택)"
+      />
     </main>
   )
 }

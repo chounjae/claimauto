@@ -51,6 +51,27 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
+        <Section title="2-1. PDF 생성 시 서버 전송">
+          <p>
+            청구서 PDF는 서버에서 생성합니다. 이때 위 정보가 <strong>일시적으로 서버에 전송</strong>되지만,
+            PDF를 만들어 응답한 뒤 즉시 폐기하며 <strong>어디에도 저장하지 않습니다.</strong>
+          </p>
+          <p className="text-xs text-gray-500">
+            전송은 POST 방식으로 이루어지므로 이름·연락처·주소가 주소창이나 브라우저 방문 기록에 남지 않습니다.
+          </p>
+        </Section>
+
+        <Section title="2-2. 의견 보내기">
+          <p>
+            의견을 보내주실 때 입력한 <strong>의견 내용</strong>과, 답변을 원하실 경우 남기신{' '}
+            <strong>이메일 주소</strong>를 수집합니다. 이메일은 <strong>선택 항목</strong>이며
+            남기지 않아도 의견을 보낼 수 있습니다.
+          </p>
+          <p className="text-xs text-gray-500">
+            수집한 의견은 서비스 개선과 문의 답변에만 사용하며, 아래 5항의 분석 도구(Mixpanel)에 함께 보관됩니다.
+          </p>
+        </Section>
+
         <Section title="3. 수집하는 이용 정보 (분석 목적)">
           <p>서비스 개선을 위해 Mixpanel을 통해 아래 정보를 수집합니다.</p>
           <ul className="list-disc pl-5">
