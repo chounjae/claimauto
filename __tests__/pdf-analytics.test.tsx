@@ -1,18 +1,15 @@
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import PdfClient from '@/app/pdf/PdfClient'
 import { track, getClientEnv } from '@/lib/analytics'
-import { navigateTo } from '@/lib/navigate'
 
 jest.mock('@/lib/analytics', () => ({
   track: jest.fn(),
   getClientEnv: jest.fn(() => ({ ua: 'UA-STUB', is_inapp: true, is_ios: true })),
+  getDistinctId: jest.fn(() => 'DISTINCT-STUB'),
 }))
-// jsdom 은 window.location 을 재정의할 수 없어 이동만 별도 모듈로 분리해 두고 여기서 가로챈다.
-jest.mock('@/lib/navigate', () => ({ navigateTo: jest.fn() }))
 
 const mockTrack = track as jest.Mock
 const mockEnv = getClientEnv as jest.Mock
-const mockNavigate = navigateTo as jest.Mock
 const INAPP_ENV = { ua: 'UA-STUB', is_inapp: true, is_ios: true }
 const DESKTOP_ENV = { ua: 'UA-DESKTOP', is_inapp: false, is_ios: false }
 
@@ -60,60 +57,61 @@ describe('PdfClient 계측', () => {
 describe('PDF 저장 — 서버 생성 방식', () => {
   beforeEach(() => {
     mockTrack.mockClear()
-    mockNavigate.mockClear()
     mockEnv.mockReturnValue(INAPP_ENV)
   })
 
-  afterEach(() => {
-    delete (globalThis as { fetch?: unknown }).fetch
-  })
-
-  it('저장 성공 시 pdf_save_clicked → pdf_generated 를 발화하고 서버 PDF 로 이동한다', async () => {
-    // jsdom 환경에는 fetch/Response 전역이 없다. 필요한 부분만 흉내 낸다.
-    globalThis.fetch = jest.fn(async () => ({
-      ok: true,
-      status: 200,
-      blob: async () => ({ size: 41669 }),
-    })) as unknown as typeof fetch
+  it('저장 시 pdf_save_clicked 를 발화하고 폼을 POST 로 제출한다', () => {
+    // jsdom 은 form.submit() 을 구현하지 않는다. 호출 여부만 가로챈다.
+    const submit = jest
+      .spyOn(HTMLFormElement.prototype, 'submit')
+      .mockImplementation(() => {})
 
     gotoPreview()
     mockTrack.mockClear()
     fireEvent.click(screen.getByRole('button', { name: 'PDF 저장' }))
 
-    expect(mockTrack).toHaveBeenCalledWith('pdf_save_clicked', { refund_reason: 'user_cancel' })
-
-    await waitFor(() => {
-      expect(mockTrack).toHaveBeenCalledWith(
-        'pdf_generated',
-        expect.objectContaining({ refund_reason: 'user_cancel', is_inapp: true }),
-      )
-    })
-
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1))
-    const target = mockNavigate.mock.calls[0][0] as string
-    expect(target).toContain('/api/pdf?')
-    // 입력한 정보가 쿼리에 실려야 서버가 문서를 만들 수 있다
-    expect(decodeURIComponent(target)).toContain('name=홍길동')
+    expect(mockTrack).toHaveBeenCalledWith(
+      'pdf_save_clicked',
+      expect.objectContaining({ refund_reason: 'user_cancel', is_inapp: true }),
+    )
+    expect(submit).toHaveBeenCalledTimes(1)
+    submit.mockRestore()
   })
 
-  it('서버가 실패해도 pdf_generate_failed 를 남기고 이동은 시도한다', async () => {
-    globalThis.fetch = jest.fn(async () => ({
-      ok: false,
-      status: 400,
-      blob: async () => ({ size: 0 }),
-    })) as unknown as typeof fetch
+  it('개인정보를 URL 이 아니라 POST 폼 본문으로 보낸다', () => {
+    // GET 쿼리로 보내면 이름·연락처·주소가 Vercel 접속 로그와 브라우저 히스토리에 남는다.
+    gotoPreview()
+
+    const form = document.querySelector('form[action="/api/pdf"]') as HTMLFormElement
+    expect(form).toBeTruthy()
+    expect(form.method.toLowerCase()).toBe('post')
+
+    const values = new Map(
+      Array.from(form.querySelectorAll('input[type="hidden"]')).map((el) => {
+        const input = el as HTMLInputElement
+        return [input.name, input.value]
+      }),
+    )
+    expect(values.get('name')).toBe('홍길동')
+    expect(values.get('refundReason')).toBe('user_cancel')
+    // 서버가 pdf_generated 를 같은 사용자로 묶으려면 distinct_id 가 필요하다.
+    expect(values.get('distinctId')).toBe('DISTINCT-STUB')
+  })
+
+  it('생성 성공(pdf_generated)은 클라이언트가 발화하지 않는다', () => {
+    // 서버만 PDF 가 실제로 만들어졌는지 안다.
+    // 클라이언트에서 재려면 fetch 로 한 번 받고 이동하며 또 만들어 PDF 가 두 번 생성된다.
+    const submit = jest
+      .spyOn(HTMLFormElement.prototype, 'submit')
+      .mockImplementation(() => {})
 
     gotoPreview()
     mockTrack.mockClear()
     fireEvent.click(screen.getByRole('button', { name: 'PDF 저장' }))
 
-    await waitFor(() => {
-      expect(mockTrack).toHaveBeenCalledWith(
-        'pdf_generate_failed',
-        expect.objectContaining({ status: 400 }),
-      )
-    })
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1))
+    const events = mockTrack.mock.calls.map((c) => c[0])
+    expect(events).not.toContain('pdf_generated')
+    submit.mockRestore()
   })
 
   it('인앱 웹뷰에서는 인쇄 버튼을 노출하지 않는다 (눌러도 무동작이라 죽은 버튼)', () => {

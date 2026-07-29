@@ -113,3 +113,20 @@ export function track(event: string, properties?: Record<string, unknown>) {
     current_url_path: location.pathname,
   })
 }
+
+/**
+ * Mixpanel distinct_id 를 반환한다.
+ *
+ * 서버가 PDF 생성 성공을 계측할 때 이 값을 함께 보내야
+ * 클라이언트 이벤트와 같은 사용자로 묶인다.
+ */
+export function getDistinctId(): string {
+  if (typeof window === 'undefined') return ''
+  try {
+    init()
+    if (!initialized) return ''
+    return mixpanel.get_distinct_id() ?? ''
+  } catch {
+    return ''
+  }
+}

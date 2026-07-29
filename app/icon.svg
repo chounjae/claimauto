@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ClaimAuto">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+
+  <!--
+    되돌아오는 고리 = 환불.
+    16px 축소 시 얇은 선은 소실되므로 stroke 3.5 이상을 유지하고,
+    안쪽 원화 기호와 겹치지 않도록 반지름 22 를 확보했다.
+  -->
+  <path
+    d="M46.9 17.1 A21 21 0 1 0 52.3 26.6"
+    fill="none"
+    stroke="#6EE7B7"
+    stroke-width="4"
+    stroke-linecap="round"
+  />
+  <path d="M40.5 20.5 L48.5 12.5 L50.5 23.5 Z" fill="#6EE7B7"/>
+
+  <!-- 원화 기호 -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24.5 26 L28 36 L32 27.5 L36 36 L39.5 26"/>
+    <path d="M22.5 30.5 H41.5"/>
+    <path d="M22.5 35 H41.5"/>
+  </g>
+</svg>

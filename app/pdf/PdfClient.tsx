@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
-import { track, getClientEnv } from '@/lib/analytics'
-import { navigateTo } from '@/lib/navigate'
+import { track, getClientEnv, getDistinctId } from '@/lib/analytics'
 import {
   addDays,
   buildPdfQuery,
@@ -237,6 +236,7 @@ function Preview({
 }) {
   const [copied, setCopied] = useState(false)
   const [saving, setSaving] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
   // 인쇄 버튼은 인앱 웹뷰가 아닐 때만 보여준다.
   // iOS 인앱 웹뷰(WKWebView)에서 window.print() 는 아무 반응이 없어(2026-07-30 실측: 인쇄 시트 0/7건)
   // 눌러도 아무 일도 일어나지 않는 죽은 버튼이 된다.
@@ -258,34 +258,30 @@ function Preview({
    * 서버가 만든 PDF 로 이동한다.
    *
    * window.print() 를 쓰지 않는다. iOS 인앱 웹뷰에서 무동작이기 때문이다.
-   * 먼저 fetch 로 생성 성공 여부를 계측(`pdf_generated`)한 뒤 같은 URL 로 이동한다.
-   * 응답에 `Cache-Control: private, max-age=60` 이 있어 이동 시 재생성되지 않는다.
-   * 계측에 실패하더라도 이동은 반드시 수행한다 — 저장이 계측보다 중요하다.
+   *
+   * **GET 이 아니라 폼 POST 로 보낸다.** 이름·연락처·주소를 쿼리에 실으면
+   * Vercel 접속 로그와 브라우저 히스토리에 남는다. 폼 제출은 인앱 웹뷰에서도
+   * GET 이동과 동일하게 동작하면서 URL 에 개인정보를 남기지 않는다.
+   *
+   * 생성 성공(`pdf_generated`)은 **서버가 계측한다.** 클라이언트에서 재려면
+   * fetch 로 한 번 받고 이동하며 또 한 번 만들어야 해서 PDF 가 두 번 생성된다.
    */
-  const handleSave = async () => {
+  const handleSave = () => {
     if (saving) return
     setSaving(true)
-
-    const env = getClientEnv()
-    const url = `/api/pdf?${buildPdfQuery(calc, form)}`
-
-    try {
-      const res = await fetch(url)
-      if (res.ok) {
-        // 응답을 끝까지 읽어야 브라우저 HTTP 캐시에 저장된다.
-        const blob = await res.blob()
-        track('pdf_generated', { ...env, refund_reason: calc.refundReason, bytes: blob.size })
-      } else {
-        track('pdf_generate_failed', { ...env, refund_reason: calc.refundReason, status: res.status })
-      }
-    } catch {
-      // 네트워크 실패. 개인정보가 섞일 수 있으므로 오류 내용은 전송하지 않는다.
-      track('pdf_generate_failed', { ...env, refund_reason: calc.refundReason, status: 0 })
-    }
-
-    // 인앱 웹뷰든 아니든 동일하게 이동시킨다. 호환성이 가장 높은 방식이다.
-    navigateTo(url)
+    track('pdf_save_clicked', { ...getClientEnv(), refund_reason: calc.refundReason })
+    formRef.current?.submit()
   }
+
+  /**
+   * 폼 hidden 필드. 기존 `buildPdfQuery` 를 그대로 재사용해
+   * 미리보기·서버 PDF·구 GET 링크가 항상 같은 값 집합을 쓰도록 한다.
+   * `distinctId` 는 서버가 `pdf_generated` 를 같은 사용자로 묶기 위해 필요하다.
+   */
+  const pdfFields: [string, string][] = [
+    ...Array.from(new URLSearchParams(buildPdfQuery(calc, form)).entries()),
+    ['distinctId', getDistinctId()],
+  ]
 
   /**
    * 데스크톱 등 순정 브라우저 전용 보조 동작.
@@ -368,13 +364,23 @@ function Preview({
           <p>📮 우체국 내용증명으로 발송하려면 <strong>인터넷우체국(epost.go.kr)</strong>을 이용하세요. 신청인 주소를 미리 입력해두면 편리합니다.</p>
         </div>
 
+        {/*
+          PDF 요청용 숨김 폼.
+          GET 쿼리로 보내면 이름·연락처·주소가 Vercel 접속 로그와 브라우저 히스토리에 남는다.
+          POST 제출은 인앱 웹뷰에서도 GET 이동과 동일하게 동작하면서 URL 에 아무것도 남기지 않는다.
+        */}
+        <form ref={formRef} method="POST" action="/api/pdf" className="hidden">
+          {pdfFields.map(([key, value]) => (
+            <input key={key} type="hidden" name={key} value={value} readOnly />
+          ))}
+        </form>
+
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-10 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent flex flex-col gap-2">
           <button
             type="button"
             disabled={saving}
             onClick={() => {
-              track('pdf_save_clicked', { refund_reason: calc.refundReason })
-              void handleSave()
+              handleSave()
             }}
             className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#10B981] text-white text-base font-bold shadow-lg disabled:opacity-70"
           >
