@@ -106,7 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50">
-        <div className="mx-auto max-w-[375px] min-h-screen relative bg-[#F8FAFC] shadow-[0_0_60px_rgba(0,0,0,0.08)]">
+        <div className="layout-wrapper mx-auto max-w-[375px] min-h-screen relative bg-[#F8FAFC] shadow-[0_0_60px_rgba(0,0,0,0.08)]">
           {children}
         </div>
       </body>

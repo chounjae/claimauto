@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
-import { track } from '@/lib/analytics'
+import { track, getClientEnv } from '@/lib/analytics'
 
 type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'not_started' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
@@ -108,6 +108,12 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
   })
   const [errors, setErrors] = useState<FormErrors>({})
 
+  // PDF 페이지 '도달' 계측. 입력폼 완료 여부와 무관하게 마운트 즉시 1회 발화한다.
+  useEffect(() => {
+    track('pdf_page_arrived', { refund_reason: calc.refundReason })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const set = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
     setErrors((prev) => ({ ...prev, [field]: undefined }))
@@ -119,13 +125,39 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
     if (Object.keys(e).length === 0) setStep('preview')
   }
 
+  // 인쇄 시트가 실제로 떴는지 감지한다.
+  // iOS 인앱 웹뷰에서는 window.print() 가 무반응이라 beforeprint 가 발화하지 않는다.
+  // afterprint 는 최신 Safari 에서 인쇄와 무관하게 즉시 발화할 수 있어 판정에 쓰지 않는다.
+  const handlePrint = () => {
+    const env = getClientEnv()
+    let settled = false
+
+    // 한 번만 발화하고 리스너·타이머를 반드시 정리한다.
+    function settle(event: string) {
+      if (settled) return
+      settled = true
+      window.removeEventListener('beforeprint', handleBeforePrint)
+      clearTimeout(timer)
+      track(event, env)
+    }
+
+    function handleBeforePrint() {
+      settle('pdf_print_sheet_shown')
+    }
+
+    window.addEventListener('beforeprint', handleBeforePrint)
+    const timer = setTimeout(() => settle('pdf_print_no_sheet'), 500)
+
+    window.print()
+  }
+
   if (step === 'preview') {
     return (
       <Preview
         calc={calc}
         form={form}
         onBack={() => setStep('form')}
-        onPrint={() => window.print()}
+        onPrint={handlePrint}
       />
     )
   }
@@ -295,6 +327,8 @@ function Preview({
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
+    // 주의: 이 이벤트는 페이지 도달이 아니라 PDF 입력폼 완료(미리보기 진입) 시점에 발화한다.
+    // 과거 데이터와의 연속성을 위해 이름을 유지한다. 페이지 도달 계측은 pdf_page_arrived 를 사용하라.
     track('pdf_page_viewed', { refund_reason: calc.refundReason })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -393,9 +427,34 @@ function Preview({
       <style>{`
         @page { margin: 0; }
         @media print {
-          body * { visibility: hidden; }
-          .print\\:block { visibility: visible !important; position: absolute; top: 0; left: 0; width: 100%; padding: 40px; box-sizing: border-box; }
-          .print\\:block * { visibility: visible !important; }
+          /* 인쇄 시 배경 그라디언트·여백 제거 */
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+            background: #fff !important;
+            background-image: none !important;
+          }
+          /* app/layout.tsx 래퍼의 모바일(375px) 제약 해제.
+             해제하지 않으면 아래 .print\\:block 의 width:100% 가 A4 폭이 아니라 375px 로 잡힌다. */
+          .layout-wrapper {
+            max-width: none !important;
+            min-height: 0 !important;
+            position: static !important;
+            margin: 0 !important;
+            background: #fff !important;
+            box-shadow: none !important;
+          }
+          /* visibility 기반 대신 display 기반.
+             화면용 컨테이너에는 이미 print:hidden(display:none)이 걸려 있으므로
+             body * { visibility: hidden } 이 필요 없다.
+             position:absolute 를 쓰면 정상 흐름에서 빠져 페이지네이션이 깨지므로 쓰지 않는다. */
+          .print\\:block {
+            display: block !important;
+            width: 100%;
+            padding: 40px;
+            box-sizing: border-box;
+          }
         }
       `}</style>
     </>
