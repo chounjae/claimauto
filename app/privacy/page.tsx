@@ -12,7 +12,7 @@ const UPDATED = '2026년 7월 30일'
 
 export default function PrivacyPage() {
   return (
-    <main className="flex flex-col min-h-screen px-5 pb-16">
+    <main id="main" className="flex flex-col min-h-dvh px-5 pb-16 md:min-h-0 md:px-10">
       <header className="pt-6 pb-4">
         <Logo />
       </header>

@@ -76,7 +76,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
   })
 
   return (
-    <main className="flex flex-col min-h-screen px-5 pb-24">
+    <main id="main" className="flex flex-col min-h-dvh px-5 pb-24 md:min-h-0 md:px-10">
       <header className="pt-6 pb-4">
         <Logo />
       </header>
@@ -88,7 +88,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
       {/* 환급액 카드 */}
       <div className="rounded-2xl bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] px-5 py-6 text-white shadow-lg mb-5">
         <p className="text-sm font-medium opacity-80">예상 환급액</p>
-        <p className="mt-1 text-4xl font-extrabold tracking-tight">
+        <p className="tnum mt-1 text-4xl font-extrabold tracking-tight">
           <CountUp target={result.refund} />
           <span className="ml-1 text-2xl font-semibold">원</span>
         </p>
@@ -127,7 +127,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
           />
           <div className="flex items-center justify-between px-4 py-3 bg-blue-50">
             <span className="text-sm font-bold text-blue-700">환급액</span>
-            <span className="text-base font-extrabold text-blue-700">{fmt(result.refund)}원</span>
+            <span className="tnum text-base font-extrabold text-blue-700">{fmt(result.refund)}원</span>
           </div>
         </div>
       </section>
@@ -164,7 +164,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
           <Link
             href={`/pdf?${pdfParams.toString()}`}
             onClick={() => track('result_cta_clicked', { cta: 'pdf' })}
-            className="flex h-10 w-full items-center justify-center rounded-xl bg-[#2563EB] text-white text-sm font-semibold"
+            className="flex h-10 w-full items-center justify-center rounded-xl bg-[#2563EB] text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#1D4ED8] active:scale-[0.98]"
           >
             청구서 PDF 만들기
           </Link>
@@ -219,11 +219,11 @@ export default function ResultClient({ result }: { result: CalcResult }) {
       </div>
 
       {/* 하단 고정 CTA */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[375px] -translate-x-1/2 p-4 bg-gradient-to-t from-[#F8FAFC] via-[#F8FAFC] to-transparent md:static md:left-auto md:max-w-none md:translate-x-0 md:bg-none md:p-0 md:pt-4">
         <Link
           href={`/pdf?${pdfParams.toString()}`}
           onClick={() => track('result_cta_clicked', { cta: 'pdf_bottom' })}
-          className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#2563EB] text-white text-base font-bold shadow-lg active:scale-[0.98] transition-transform"
+          className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#2563EB] text-base font-bold text-white shadow-[0_6px_20px_-6px_rgba(37,99,235,0.55)] transition-all duration-200 hover:bg-[#1D4ED8] active:scale-[0.98]"
         >
           청구서 PDF 만들기
         </Link>

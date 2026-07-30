@@ -101,7 +101,7 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
   }
 
   return (
-    <main className="flex flex-col min-h-screen px-5 pb-32">
+    <main id="main" className="flex flex-col min-h-dvh px-5 pb-32 md:min-h-0 md:px-10">
       <header className="pt-6 pb-4">
         <Logo />
       </header>
@@ -185,7 +185,7 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[375px] -translate-x-1/2 p-4 bg-gradient-to-t from-[#F8FAFC] via-[#F8FAFC] to-transparent md:static md:left-auto md:max-w-none md:translate-x-0 md:bg-none md:p-0 md:pt-4">
         <button
           type="button"
           onClick={handlePreview}
@@ -398,7 +398,7 @@ function Preview({
 
   return (
     <>
-      <div className="print:hidden flex flex-col min-h-screen px-5 pb-[260px]">
+      <div className="print:hidden flex flex-col min-h-dvh px-5 pb-[260px]">
         <div className="pt-6 mb-4">
           <h1 className="text-xl font-bold text-gray-900">청구서 미리보기</h1>
           <p className="mt-1 text-sm text-gray-500">PDF를 저장해 카카오톡으로 전송하거나 직접 전달하세요</p>
@@ -442,14 +442,14 @@ function Preview({
           ))}
         </form>
 
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-10 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent flex flex-col gap-2">
+        <div className="fixed bottom-0 left-1/2 z-10 flex w-full max-w-[375px] -translate-x-1/2 flex-col gap-2 p-4 bg-gradient-to-t from-[#F8FAFC] via-[#F8FAFC] to-transparent md:static md:left-auto md:max-w-none md:translate-x-0 md:bg-none md:p-0 md:pt-4">
           <button
             type="button"
             disabled={saving}
             onClick={() => {
               handleSave()
             }}
-            className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#10B981] text-white text-base font-bold shadow-lg disabled:opacity-70"
+            className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#059669] text-base font-bold text-white shadow-[0_6px_20px_-6px_rgba(5,150,105,0.5)] transition-all duration-200 hover:bg-[#047857] active:scale-[0.98] disabled:opacity-70"
           >
             {saving ? 'PDF 만드는 중...' : 'PDF 저장'}
           </button>

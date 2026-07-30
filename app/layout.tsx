@@ -1,5 +1,25 @@
 import type { Metadata, Viewport } from 'next'
+import localFont from 'next/font/local'
 import './globals.css'
+
+/*
+  Pretendard 셀프호스팅.
+  이전에는 globals.css 에서 jsdelivr CDN 을 @import 했다. 문제 두 가지:
+  ① CSS 내부 @import 라 Tailwind 뒤에 직렬 요청된다
+  ② 정적 전체 웨이트를 받아 실측 3.9MB 가 전송됐다
+  next/font 는 같은 도메인에서 서빙하고 preload·swap 을 자동으로 붙인다.
+  웨이트는 Regular(400)/Bold(700) 두 개만 쓴다 —
+  한글 폰트는 웨이트당 765~800KB 라 늘릴수록 그대로 비용이다.
+*/
+const pretendard = localFont({
+  src: [
+    { path: '../fonts/Pretendard-Regular.ttf', weight: '400', style: 'normal' },
+    { path: '../fonts/Pretendard-Bold.ttf', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-pretendard',
+  display: 'swap',
+  fallback: ['-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+})
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://claimauto.aphelion.ai.kr'
 const TITLE = '헬스장 환불 얼마 받을 수 있나 — 1분 계산 | ClaimAuto'
@@ -47,7 +67,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  /*
+    확대를 막으면 WCAG 1.4.4 위반이다 — 저시력 사용자가 본문을 키울 수 없다.
+    iOS 에서 입력창 포커스 시 자동 줌이 싫으면 input font-size 를 16px 이상으로
+    두는 것이 올바른 해법이고, 이 앱은 이미 그렇게 되어 있다.
+  */
+  maximumScale: 5,
+  userScalable: true,
 }
 
 const jsonLd = {
@@ -103,15 +129,28 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={pretendard.variable}>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50">
-        <div className="layout-wrapper mx-auto max-w-[375px] min-h-screen relative bg-[#F8FAFC] shadow-[0_0_60px_rgba(0,0,0,0.08)]">
+      <body className="min-h-dvh">
+        <a href="#main" className="skip-link">본문으로 건너뛰기</a>
+        {/*
+          폰 기준(375px)을 유지하되 데스크톱에서 화면 중앙의 좁은 기둥으로 보이지 않게 한다.
+          방문자의 16.4%(44/267)가 이미 데스크톱이고, 검색 색인이 열려 비율이 오를 것이다.
+          md 이상에서 컨테이너를 600px 로 넓히고 위아래 여백을 줘서
+          '모바일 스크린샷을 백지에 붙인 것' 같은 인상을 없앤다.
+        */}
+        <div
+          className="
+            layout-wrapper relative mx-auto min-h-dvh max-w-[375px] bg-[#F8FAFC]
+            shadow-[0_2px_48px_-8px_rgba(37,99,235,0.12)]
+            md:my-10 md:min-h-0 md:max-w-[600px] md:rounded-3xl md:shadow-[0_8px_64px_-12px_rgba(37,99,235,0.18)]
+          "
+        >
           {children}
         </div>
       </body>

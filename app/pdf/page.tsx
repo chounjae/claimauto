@@ -28,7 +28,7 @@ export default async function PdfPage({
 
   if (!contractAmount || !startDate || !stopDate) {
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen px-5 text-center">
+      <main className="flex flex-col items-center justify-center min-h-dvh px-5 text-center">
         <p className="text-lg font-bold text-gray-800">계산 결과가 없습니다</p>
         <a href="/form" className="mt-4 text-sm text-[#2563EB] underline">
           처음으로 돌아가기

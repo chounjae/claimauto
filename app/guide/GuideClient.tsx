@@ -171,7 +171,7 @@ export default function GuideClient() {
   }
 
   return (
-    <main className="flex flex-col min-h-screen px-5 pb-24">
+    <main id="main" className="flex flex-col min-h-dvh px-5 pb-24 md:min-h-0 md:px-10">
       <header className="pt-6 pb-4">
         <Logo />
       </header>
@@ -252,7 +252,18 @@ export default function GuideClient() {
               className="flex w-full items-center justify-between px-4 py-4 text-left"
             >
               <span className="text-sm font-semibold text-gray-800 pr-2">{faq.q}</span>
-              <span className={`text-gray-400 shrink-0 transition-transform ${faqOpen === i ? 'rotate-180' : ''}`}>▾</span>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 12 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`h-2 w-3 shrink-0 text-gray-400 transition-transform duration-200 ${faqOpen === i ? 'rotate-180' : ''}`}
+              >
+                <path d="M1 1.5 6 6.5 11 1.5" />
+              </svg>
             </button>
             {faqOpen === i && (
               <div className="px-4 pb-4">
@@ -264,7 +275,7 @@ export default function GuideClient() {
       </div>
 
       {/* 하단 버튼 */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[375px] -translate-x-1/2 p-4 bg-gradient-to-t from-[#F8FAFC] via-[#F8FAFC] to-transparent md:static md:left-auto md:max-w-none md:translate-x-0 md:bg-none md:p-0 md:pt-4">
         <button
           type="button"
           onClick={() => router.back()}
@@ -390,7 +401,7 @@ function StepCard({
         <button
           type="button"
           onClick={onExternalLink}
-          className="w-full h-10 rounded-xl bg-[#2563EB] text-white text-sm font-semibold"
+          className="w-full h-10 rounded-xl bg-[#2563EB] text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#1D4ED8] active:scale-[0.98]"
         >
           {step.action.label}
         </button>

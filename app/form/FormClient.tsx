@@ -113,7 +113,7 @@ export default function FormClient() {
   }
 
   return (
-    <main className="flex flex-col min-h-screen px-5 pb-32">
+    <main id="main" className="flex flex-col min-h-dvh px-5 pb-32 md:min-h-0 md:px-10">
       <header className="pt-6 pb-4">
         <Logo />
       </header>
@@ -263,11 +263,11 @@ export default function FormClient() {
         />
       </div>
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[375px] p-4 bg-gradient-to-t from-[#F8FAFC] to-transparent">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[375px] -translate-x-1/2 p-4 bg-gradient-to-t from-[#F8FAFC] via-[#F8FAFC] to-transparent md:static md:left-auto md:max-w-none md:translate-x-0 md:bg-none md:p-0 md:pt-4">
         <button
           type="button"
           onClick={handleSubmit}
-          className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#2563EB] text-white text-base font-bold shadow-lg active:scale-[0.98] transition-transform"
+          className="flex h-[52px] w-full items-center justify-center rounded-xl bg-[#2563EB] text-base font-bold text-white shadow-[0_6px_20px_-6px_rgba(37,99,235,0.55)] transition-all duration-200 hover:bg-[#1D4ED8] active:scale-[0.98]"
         >
           계산하기
         </button>

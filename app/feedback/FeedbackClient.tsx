@@ -16,7 +16,7 @@ export default function FeedbackClient() {
   const [sent, setSent] = useState(false)
 
   return (
-    <main className="flex min-h-screen flex-col px-5 pb-16">
+    <main id="main" className="flex min-h-dvh flex-col px-5 pb-16 md:min-h-0 md:px-10">
       <header className="pt-6 pb-4">
         <Logo />
       </header>

@@ -64,7 +64,7 @@ export default async function ResultPage({
 
   if (!contractAmount || !monthlyFee || !startDate || !stopDate) {
     return (
-      <main className="flex flex-col items-center justify-center min-h-screen px-5 text-center">
+      <main className="flex flex-col items-center justify-center min-h-dvh px-5 text-center">
         <p className="text-lg font-bold text-gray-800">입력 정보가 없습니다</p>
         <a href="/form" className="mt-4 text-sm text-[#2563EB] underline">
           정보 입력으로 돌아가기

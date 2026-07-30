@@ -99,21 +99,54 @@ export default function DatePicker({ label, hint, value, onChange, error }: Date
             <option value="">년도</option>
             {YEARS.map((yr) => <option key={yr} value={yr}>{yr}년</option>)}
           </select>
-          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 12 8"
+            className="pointer-events-none absolute right-2.5 top-1/2 h-2 w-3 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M1 1.5 6 6.5 11 1.5" />
+          </svg>
         </div>
         <div className="relative flex-1">
           <select value={m || ''} onChange={(e) => handleMonth(Number(e.target.value))} className={`${sel(!!m)} w-full pr-7`}>
             <option value="">월</option>
             {MONTHS.map((mo) => <option key={mo} value={mo}>{mo}월</option>)}
           </select>
-          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 12 8"
+            className="pointer-events-none absolute right-2.5 top-1/2 h-2 w-3 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M1 1.5 6 6.5 11 1.5" />
+          </svg>
         </div>
         <div className="relative flex-1">
           <select value={d || ''} onChange={(e) => handleDay(Number(e.target.value))} disabled={!y || !m} className={`${sel(!!d)} w-full pr-7 disabled:opacity-40`}>
             <option value="">일</option>
             {days.map((day) => <option key={day} value={day}>{day}일</option>)}
           </select>
-          <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 12 8"
+            className="pointer-events-none absolute right-2.5 top-1/2 h-2 w-3 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M1 1.5 6 6.5 11 1.5" />
+          </svg>
         </div>
       </div>
       {hint && !error && <p className="text-xs text-gray-400">{hint}</p>}
