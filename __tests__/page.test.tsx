@@ -13,15 +13,15 @@ describe('OnboardingPage', () => {
   it('히어로 텍스트를 렌더링한다', () => {
     render(<OnboardingPage />)
     expect(screen.getByText(/헬스장 환불/)).toBeInTheDocument()
-    expect(screen.getByText(/1분이면 얼마 받을 수 있는지/)).toBeInTheDocument()
-    expect(screen.getByText(/폐업 · 중도해지/)).toBeInTheDocument()
+    expect(screen.getByText(/계약서에 「환불 불가」라고 써 있어도/)).toBeInTheDocument()
+    expect(screen.getByText(/내 환급액을 1분 만에/)).toBeInTheDocument()
   })
 
   it('신뢰 지표 3개를 렌더링한다', () => {
     render(<OnboardingPage />)
-    expect(screen.getByText(/폐업·중도해지/)).toBeInTheDocument()
-    expect(screen.getByText(/PDF 즉시/)).toBeInTheDocument()
-    expect(screen.getAllByText(/소비자원\s*바로 연결/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('평균 미환불 금액')).toBeInTheDocument()
+    expect(screen.getByText('26만원')).toBeInTheDocument()
+    expect(screen.getByText('연 5,000건')).toBeInTheDocument()
   })
 
   it('CTA 버튼이 /form 으로 연결된다', () => {

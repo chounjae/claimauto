@@ -178,7 +178,7 @@ export default function ResultClient({ result }: { result: CalcResult }) {
           </div>
           <p className="text-xs text-gray-500 mb-1">기간: 2~4주 &nbsp;|&nbsp; 비용: 무료 &nbsp;|&nbsp; 공적 기관 압박 효과</p>
           <p className="text-xs text-gray-600 mb-3">
-            직접 협상 실패 후 진행하세요. 소비자원이 업체에 공문을 보내면 70% 이상이 해결됩니다.
+            직접 협상 실패 후 진행하세요. 소비자원이 업체에 공문을 보내는 것만으로 해결되는 경우가 많습니다.
           </p>
           <div className="flex gap-2">
             <button

@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://claimauto.aphelion.ai.kr'
-const TITLE = 'ClaimAuto — 헬스장 환불 청구 자동화'
-const DESCRIPTION = '헬스장 환불, 얼마 받을 수 있는지 1분 만에 확인하세요. 공정위 고시 기반 계산 후 법적 근거가 담긴 청구서를 무료로 만들어 드립니다.'
+const TITLE = '헬스장 환불 얼마 받을 수 있나 — 1분 계산 | ClaimAuto'
+const DESCRIPTION = '계약서에 「환불 불가」라고 써 있어도 포기하지 마세요. 공정위 기준으로 내 환급액을 1분 만에 계산하고, 법적 근거가 담긴 내용증명까지 무료로 만들어 드립니다.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -77,7 +77,7 @@ const jsonLd = {
           name: '헬스장이 환불을 거부하면 어떻게 하나요?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: '한국소비자원(ccn.go.kr)에 피해구제를 신청하세요. 소비자원이 업체에 공문을 발송하면 70% 이상이 자진 환불로 해결됩니다. 조정 불성립 시 소액소송으로 법원에 직접 청구할 수 있습니다.',
+            text: '한국소비자원(ccn.go.kr)에 피해구제를 신청하세요. 소비자원이 업체에 공문을 발송하는 것만으로 합의에 이르는 경우가 많습니다. 조정 불성립 시 소액소송으로 법원에 직접 청구할 수 있습니다.',
           },
         },
         {
