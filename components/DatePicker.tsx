@@ -23,15 +23,28 @@ export default function DatePicker({ label, hint, value, onChange, error }: Date
   const [m, setM] = useState(0)
   const [d, setD] = useState(0)
 
+  /**
+   * 바깥에서 들어온 값을 내부 선택 상태에 반영한다.
+   *
+   * ⚠️ `value` 가 비었을 때 내부 상태를 지우면 안 된다.
+   *
+   * 연/월을 바꾸면 날짜가 일시적으로 불완전해지므로 `handleYear`·`handleMonth` 가
+   * `onChange('')` 를 부른다. 그때 내부 상태까지 초기화하면
+   * **방금 고른 연도가 즉시 지워진다.** 값이 이미 채워진 필드(예: 오늘로 미리 채워진
+   * 환불 요청일)에서 연도만 바꾸려 해도 세 칸을 처음부터 다시 골라야 했다.
+   *
+   * 따라서 비어 있는 값은 무시하고, 실제로 다른 날짜가 들어올 때만 동기화한다.
+   */
   useEffect(() => {
-    if (value) {
-      const parts = value.split('-').map(Number)
-      setY(parts[0] ?? 0)
-      setM(parts[1] ?? 0)
-      setD(parts[2] ?? 0)
-    } else {
-      setY(0); setM(0); setD(0)
-    }
+    if (!value) return
+    const parts = value.split('-').map(Number)
+    const [ny, nm, nd] = [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0]
+    if (ny === y && nm === m && nd === d) return
+    // 세 개의 select 를 하나의 날짜 문자열과 양방향으로 맞추는 구조라
+    // 파생 상태로는 표현되지 않는다. 위 비교로 재귀 렌더는 막았다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setY(ny); setM(nm); setD(nd)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
   const days = useMemo(

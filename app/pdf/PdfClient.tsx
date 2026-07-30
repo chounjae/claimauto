@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Logo from '@/components/Logo'
 import ProgressBar from '@/components/ProgressBar'
 import { track, getClientEnv, getDistinctId } from '@/lib/analytics'
+import { clearDraft, loadDraft, saveDraft } from '@/lib/draft'
 import FeedbackSheet from '@/components/FeedbackSheet'
 import {
   addDays,
@@ -46,6 +47,31 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
     staffName: '', bankAccount: '', deadline: '7',
   })
   const [errors, setErrors] = useState<FormErrors>({})
+  const [restored, setRestored] = useState(false)
+
+  /*
+    업체 주소를 찾으려면 지도 앱을 열어야 한다 — 앱 전환이 사실상 강제된다.
+    전환 중 탭이 폐기되면 입력이 전부 날아가므로 브라우저에 임시 보관한다.
+    서버로는 보내지 않는다.
+  */
+  useEffect(() => {
+    const saved = loadDraft<FormData>('pdf_form')
+    if (saved && saved.name) {
+      // localStorage 는 서버에 없으므로 useState 초기값으로는 읽을 수 없다
+      // (하이드레이션 불일치가 난다). 마운트 후 1회 복원이 유일한 방법이다.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setForm(saved)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRestored(true)
+      track('pdf_form_restored')
+    }
+  }, [])
+
+  useEffect(() => {
+    // 아무것도 안 쓴 상태를 저장할 필요는 없다.
+    if (!form.name && !form.phone && !form.gymName && !form.gymAddress) return
+    saveDraft('pdf_form', form)
+  }, [form])
 
   // PDF 페이지 '도달' 계측. 입력폼 완료 여부와 무관하게 마운트 즉시 1회 발화한다.
   useEffect(() => {
@@ -86,6 +112,23 @@ export default function PdfClient({ calc }: { calc: CalcData }) {
         <h1 className="text-xl font-bold text-gray-900">청구서 정보 입력</h1>
         <p className="mt-1 text-sm text-gray-500">내용증명 형식의 환불 청구서가 생성됩니다</p>
       </div>
+
+      {restored && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-xs text-emerald-800">
+          <span>이전에 입력하던 내용을 불러왔습니다.</span>
+          <button
+            type="button"
+            onClick={() => {
+              clearDraft('pdf_form')
+              setForm({ name: '', phone: '', myAddress: '', gymName: '', gymAddress: '', staffName: '', bankAccount: '', deadline: '7' })
+              setRestored(false)
+            }}
+            className="ml-auto shrink-0 underline"
+          >
+            새로 입력
+          </button>
+        </div>
+      )}
 
       {/* 환불 사유 읽기 전용 표시 */}
       <div className="mb-5 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 flex items-center gap-2">
@@ -274,6 +317,8 @@ function Preview({
     if (saving) return
     setSaving(true)
     track('pdf_save_clicked', { ...getClientEnv(), refund_reason: calc.refundReason })
+    // 청구서를 받았으면 기기에 개인정보를 남겨둘 이유가 없다.
+    clearDraft('pdf_form')
     formRef.current?.submit()
     // 폼 제출로 PDF 화면이 뜬다. 뒤로 돌아오면 8초 뒤 확인 질문을 띄운다.
     setTimeout(() => { setSaving(false); setAskAfterSave(true) }, 8000)
