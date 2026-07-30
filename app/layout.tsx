@@ -3,7 +3,7 @@ import './globals.css'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://claimauto.aphelion.ai.kr'
 const TITLE = 'ClaimAuto — 헬스장 환불 청구 자동화'
-const DESCRIPTION = '3분 만에 법적 근거가 담긴 환급 청구서를 만드세요. 공정위 고시 기반 계산, PDF 즉시 발급, 소비자원 바로 연결.'
+const DESCRIPTION = '헬스장 환불, 얼마 받을 수 있는지 1분 만에 확인하세요. 공정위 고시 기반 계산 후 법적 근거가 담긴 청구서를 무료로 만들어 드립니다.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

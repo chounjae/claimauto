@@ -38,7 +38,9 @@ describe('FormPage', () => {
     expect(screen.getByText('총 결제금액을 입력해주세요')).toBeInTheDocument()
     expect(screen.getByText('계약 기간을 선택해주세요')).toBeInTheDocument()
     expect(screen.getByText('계약 시작일을 선택해주세요')).toBeInTheDocument()
-    expect(screen.getByText('환불 요청일을 선택해주세요')).toBeInTheDocument()
+    // 환불 요청일은 오늘 날짜로 미리 채워지므로 비어 있을 수 없다.
+    // 비어 있는 필수 필드는 환불 사유다.
+    expect(screen.getByText('환불 사유를 선택해주세요')).toBeInTheDocument()
   })
 
   it('계약 기간 칩 선택 시 월 환산금액이 자동 계산된다', () => {
@@ -66,6 +68,8 @@ describe('FormPage', () => {
     const selects = screen.getAllByRole('combobox')
     fillDate(selects, 0, '2024', '1', '1')
     fillDate(selects, 3, '2024', '3', '15')
+    // 환불 사유는 2단계다 — 먼저 그룹, 그다음 세부 사유
+    fireEvent.click(screen.getByText('헬스장 쪽 문제예요'))
     fireEvent.click(screen.getByRole('button', { name: /헬스장 폐업/ }))
     fireEvent.click(screen.getByRole('button', { name: '계산하기' }))
     expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/result'))

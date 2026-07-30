@@ -13,7 +13,7 @@ describe('OnboardingPage', () => {
   it('히어로 텍스트를 렌더링한다', () => {
     render(<OnboardingPage />)
     expect(screen.getByText(/헬스장 환불/)).toBeInTheDocument()
-    expect(screen.getByText(/3분 만에 법적 청구서/)).toBeInTheDocument()
+    expect(screen.getByText(/1분이면 얼마 받을 수 있는지/)).toBeInTheDocument()
     expect(screen.getByText(/폐업 · 중도해지/)).toBeInTheDocument()
   })
 
@@ -26,7 +26,7 @@ describe('OnboardingPage', () => {
 
   it('CTA 버튼이 /form 으로 연결된다', () => {
     render(<OnboardingPage />)
-    const cta = screen.getByRole('link', { name: '환급액 계산하기' })
+    const cta = screen.getByRole('link', { name: '무료 환급액 계산하기' })
     expect(cta).toBeInTheDocument()
     expect(cta).toHaveAttribute('href', '/form')
   })

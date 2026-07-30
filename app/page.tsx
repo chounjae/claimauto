@@ -20,7 +20,7 @@ export default function OnboardingPage() {
             헬스장 환불,<br />직접 받으세요
           </h1>
           <h2 className="text-xl font-bold text-[#2563EB]">
-            3분 만에 법적 청구서를 완성하세요
+            1분이면 얼마 받을 수 있는지 알려드려요
           </h2>
           <p className="text-sm text-gray-500 leading-relaxed">
             폐업 · 중도해지 · 단순변심 모두 가능<br />
@@ -46,7 +46,7 @@ export default function OnboardingPage() {
       </footer>
 
       {/* 하단 고정 CTA */}
-      <CTAButton href="/form" label="무료 환급액 계산하기" sublabel="3초 소요 · 무료 · 회원가입 불필요" />
+      <CTAButton href="/form" label="무료 환급액 계산하기" sublabel="무료 · 회원가입 불필요" />
     </main>
   )
 }

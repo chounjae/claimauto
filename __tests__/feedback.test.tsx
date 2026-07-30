@@ -103,3 +103,34 @@ describe('FeedbackSheet', () => {
     expect(mockTrack).toHaveBeenCalledWith('feedback_opened', expect.objectContaining({ place: 'result_exit' }))
   })
 })
+
+describe('PDF 입력 초안 보관', () => {
+  // 업체 주소를 찾으려면 지도 앱을 열어야 한다. 앱 전환으로 탭이 폐기되면 입력이 날아갔다.
+  const { saveDraft, loadDraft, clearDraft } = jest.requireActual('@/lib/draft')
+
+  beforeEach(() => localStorage.clear())
+
+  it('저장한 초안을 다시 읽을 수 있다', () => {
+    saveDraft('pdf_form', { name: '홍길동', gymAddress: '서울시 강남구' })
+    expect(loadDraft('pdf_form')).toEqual({ name: '홍길동', gymAddress: '서울시 강남구' })
+  })
+
+  it('24시간이 지난 초안은 버린다', () => {
+    const stale = JSON.stringify({ at: Date.now() - 25 * 60 * 60 * 1000, data: { name: '홍길동' } })
+    localStorage.setItem('cf_draft_pdf_form', stale)
+    expect(loadDraft('pdf_form')).toBeNull()
+    // 만료된 개인정보를 기기에 남겨두지 않는다
+    expect(localStorage.getItem('cf_draft_pdf_form')).toBeNull()
+  })
+
+  it('제출 후 지우면 남지 않는다', () => {
+    saveDraft('pdf_form', { name: '홍길동' })
+    clearDraft('pdf_form')
+    expect(loadDraft('pdf_form')).toBeNull()
+  })
+
+  it('깨진 값이 들어 있어도 예외를 던지지 않는다', () => {
+    localStorage.setItem('cf_draft_pdf_form', '{not json')
+    expect(loadDraft('pdf_form')).toBeNull()
+  })
+})
