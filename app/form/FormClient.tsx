@@ -11,6 +11,8 @@ import DatePicker from '@/components/DatePicker'
 import PaymentChips, { type PaymentType } from '@/components/PaymentChips'
 import RefundReasonChips, { type RefundReason } from '@/components/RefundReasonChips'
 import FeedbackSheet from '@/components/FeedbackSheet'
+import ProductTypeChips from '@/components/ProductTypeChips'
+import type { ProductType } from '@/lib/refund'
 
 const START_DATE_SHORTCUTS = [
   { label: '1개월 전', months: 1 },
@@ -32,28 +34,63 @@ interface FormErrors {
   startDate?: string
   stopDate?: string
   refundReason?: string
+  totalSessions?: string
+  usedSessions?: string
 }
 
-function validate(
-  totalAmount: string,
-  months: number | null,
-  startDate: string,
-  stopDate: string,
-  refundReason: RefundReason | null,
-): FormErrors {
+interface ValidateInput {
+  productType: ProductType
+  totalAmount: string
+  months: number | null
+  startDate: string
+  stopDate: string
+  refundReason: RefundReason | null
+  totalSessions: string
+  usedSessions: string
+}
+
+/**
+ * 상품 유형에 따라 필수 필드가 갈린다.
+ * - 기간제: 계약 기간 + 시작일 (이용일수를 날짜로 센다)
+ * - 횟수제: 총 횟수 + 사용 횟수 (날짜와 무관하다)
+ *
+ * 환불 요청일은 두 유형 모두 필요하다. 내용증명에 들어가는 기준일이다.
+ */
+function validate(input: ValidateInput): FormErrors {
   const errors: FormErrors = {}
-  if (!totalAmount || Number(totalAmount) <= 0)
+  const isSession = input.productType === 'session'
+
+  if (!input.totalAmount || Number(input.totalAmount) <= 0)
     errors.totalAmount = '총 결제금액을 입력해주세요'
-  if (!months || months <= 0)
-    errors.months = '계약 기간을 선택해주세요'
-  if (!startDate)
-    errors.startDate = '계약 시작일을 선택해주세요'
-  if (!stopDate)
+
+  if (isSession) {
+    const total = Number(input.totalSessions)
+    const used = Number(input.usedSessions)
+    if (!input.totalSessions || total <= 0)
+      errors.totalSessions = '전체 횟수를 입력해주세요'
+    if (input.usedSessions === '' || used < 0)
+      errors.usedSessions = '사용한 횟수를 입력해주세요 (안 썼으면 0)'
+    else if (total > 0 && used > total)
+      errors.usedSessions = '사용 횟수가 전체 횟수보다 많습니다'
+  } else {
+    if (!input.months || input.months <= 0)
+      errors.months = '계약 기간을 선택해주세요'
+  }
+
+  // 계약일은 두 유형 모두 필요하다. 계산에는 기간제만 쓰지만
+  // 내용증명 본문의 「계약 시작일」 항목에 들어간다.
+  // 오류 문구는 화면에 보이는 라벨과 같은 말을 쓴다.
+  if (!input.startDate)
+    errors.startDate = isSession ? '계약일을 선택해주세요' : '계약 시작일을 선택해주세요'
+
+  if (!input.stopDate)
     errors.stopDate = '환불 요청일을 선택해주세요'
-  else if (startDate && stopDate <= startDate)
+  else if (!isSession && input.startDate && input.stopDate <= input.startDate)
     errors.stopDate = '환불 요청일은 계약 시작일 이후여야 합니다'
-  if (!refundReason)
+
+  if (!input.refundReason)
     errors.refundReason = '환불 사유를 선택해주세요'
+
   return errors
 }
 
@@ -70,6 +107,11 @@ export default function FormClient() {
   const [paymentType, setPaymentType] = useState<PaymentType>('신용카드 일시불')
   const [purchaseType, setPurchaseType] = useState<'regular' | 'discounted'>('regular')
   const [refundReason, setRefundReason] = useState<RefundReason | null>(null)
+  const [productType, setProductType] = useState<ProductType>('period')
+  const [totalSessions, setTotalSessions] = useState('')
+  const [usedSessions, setUsedSessions] = useState('')
+  /** 업체가 주장한 1일(1회) 단가. 선택 입력 — 비워두면 기존 흐름 그대로다. */
+  const [claimedUnitPrice, setClaimedUnitPrice] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const fieldsTrackedRef = useRef<Set<string>>(new Set())
 
@@ -83,27 +125,44 @@ export default function FormClient() {
     track('form_field_filled', { field })
   }
 
+  const isSession = productType === 'session'
+
   const monthlyFee = useMemo(() => {
     if (!totalAmount || !months) return null
     return Math.round(Number(totalAmount) / months)
   }, [totalAmount, months])
 
+  /** 회당 단가 = 실납부액 ÷ 총횟수. 정가가 아니라 실제 낸 금액이 기준이다. */
+  const unitPrice = useMemo(() => {
+    const total = Number(totalSessions)
+    if (!totalAmount || !total || total <= 0) return null
+    return Math.round(Number(totalAmount) / total)
+  }, [totalAmount, totalSessions])
+
   const handleSubmit = () => {
-    const newErrors = validate(totalAmount, months, startDate, stopDate, refundReason)
+    const newErrors = validate({
+      productType, totalAmount, months, startDate, stopDate, refundReason, totalSessions, usedSessions,
+    })
     setErrors(newErrors)
     if (Object.keys(newErrors).length > 0) return
 
     const params = new URLSearchParams({
+      productType,
       contractAmount: totalAmount,
-      monthlyFee: String(monthlyFee),
-      startDate,
       stopDate,
       paymentType,
       purchaseType,
       refundReason: refundReason!,
+      startDate,
+      ...(isSession
+        ? { totalSessions, usedSessions }
+        : { monthlyFee: String(monthlyFee) }),
+      ...(claimedUnitPrice ? { claimedUnitPrice } : {}),
     })
     const amount = Number(totalAmount)
     track('form_submitted', {
+      product_type: productType,
+      has_claimed_unit_price: Boolean(claimedUnitPrice),
       refund_reason: refundReason,
       purchase_type: purchaseType,
       payment_type: paymentType,
@@ -128,38 +187,99 @@ export default function FormClient() {
       </div>
 
       <div className="flex flex-col gap-5">
+        {/* 상품 유형 — 기간제 / 횟수제 */}
+        <ProductTypeChips
+          value={productType}
+          onChange={v => { setProductType(v); trackField('product_type') }}
+        />
+
         {/* 총 결제금액 */}
         <NumberInput
           label="총 결제금액"
-          hint="헬스장에 실제 낸 전체 금액 (예: 400,000)"
+          hint="실제 낸 전체 금액 (예: 400,000). 할인받았으면 할인 후 금액"
           value={totalAmount}
           onChange={v => { setTotalAmount(v); if (v) trackField('total_amount') }}
           error={errors.totalAmount}
         />
 
-        {/* 계약 기간 */}
-        <MonthChips
-          value={months}
-          onChange={v => { setMonths(v); if (v) trackField('months') }}
-          error={errors.months}
-        />
+        {isSession ? (
+          <>
+            <NumberInput
+              label="전체 횟수"
+              unit="회"
+              hint="계약한 총 횟수 (예: 30)"
+              value={totalSessions}
+              onChange={v => { setTotalSessions(v); if (v) trackField('total_sessions') }}
+              error={errors.totalSessions}
+            />
+            <NumberInput
+              label="사용한 횟수"
+              unit="회"
+              hint="지금까지 받은 횟수. 한 번도 안 받았으면 0"
+              value={usedSessions}
+              onChange={v => { setUsedSessions(v); if (v) trackField('used_sessions') }}
+              error={errors.usedSessions}
+            />
+            {unitPrice !== null && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                <p className="mb-0.5 text-xs text-blue-500">회당 단가 (자동 계산)</p>
+                <p className="text-sm font-semibold text-blue-700">
+                  {Number(totalAmount).toLocaleString()}원 ÷ {Number(totalSessions).toLocaleString()}회
+                  {' = '}
+                  <span className="text-base">{unitPrice.toLocaleString()}원/회</span>
+                </p>
+                <p className="mt-1.5 text-xs leading-5 text-blue-600">
+                  <strong>실제 낸 금액</strong> 기준입니다. 업체가 정가나 할인 전 단가로 차감하려 하면
+                  아래 칸에 그 금액을 적어보세요.
+                </p>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* 계약 기간 */}
+            <MonthChips
+              value={months}
+              onChange={v => { setMonths(v); if (v) trackField('months') }}
+              error={errors.months}
+            />
 
-        {/* 월 환산금액 자동 계산 */}
-        {monthlyFee !== null && (
-          <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
-            <p className="text-xs text-blue-500 mb-0.5">월 환산금액 (자동 계산)</p>
-            <p className="text-sm font-semibold text-blue-700">
-              {Number(totalAmount).toLocaleString()}원 ÷ {months}개월
-              {' = '}
-              <span className="text-base">{monthlyFee.toLocaleString()}원/월</span>
-            </p>
-          </div>
+            {/* 월 환산금액 자동 계산 */}
+            {monthlyFee !== null && (
+              <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
+                <p className="text-xs text-blue-500 mb-0.5">월 환산금액 (자동 계산)</p>
+                <p className="text-sm font-semibold text-blue-700">
+                  {Number(totalAmount).toLocaleString()}원 ÷ {months}개월
+                  {' = '}
+                  <span className="text-base">{monthlyFee.toLocaleString()}원/월</span>
+                </p>
+              </div>
+            )}
+          </>
         )}
 
-        {/* 계약 시작일 */}
+        {/*
+          업체 주장 단가 — 선택 입력.
+          지식iN 20건 중 5건이 이 다툼이었다. 공식은 양쪽이 같고 단가만 다르다.
+          비워두면 기존 흐름 그대로다. 폼 이탈 위험 때문에 필수로 두지 않았다 (ADR-005 §4).
+        */}
+        <NumberInput
+          label={isSession ? '업체가 말한 1회 단가 (선택)' : '업체가 말한 1일 단가 (선택)'}
+          hint={
+            isSession
+              ? '"1회 12만원씩 빼겠다"고 하면 120000. 모르면 비워두세요'
+              : '"하루 12,000원씩 빼겠다"고 하면 12000. 모르면 비워두세요'
+          }
+          value={claimedUnitPrice}
+          onChange={v => { setClaimedUnitPrice(v); if (v) trackField('claimed_unit_price') }}
+        />
+
+        {/* 계약 시작일 — 횟수제는 계산에 쓰지 않지만 내용증명에 들어간다 */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-800">계약 시작일</span>
+            <span className="text-sm font-semibold text-gray-800">
+              {isSession ? '계약일' : '계약 시작일'}
+            </span>
             <span className="text-xs text-gray-400">정확하지 않아도 됩니다</span>
           </div>
           <div className="flex gap-2">

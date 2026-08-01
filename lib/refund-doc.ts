@@ -56,6 +56,40 @@ export interface CalcData {
   /** 사업자 귀책 여부. true면 위약금을 차감이 아니라 가산한다 (고시 ④체육시설업 4항).
    *  구 URL 호환을 위해 optional. 없으면 false(소비자 귀책)로 본다. */
   isBusinessFault?: boolean
+  /** 2026-08-01 추가 (ADR-002 개정). 없으면 'period' — 기존 URL 호환. */
+  productType?: 'period' | 'session'
+  totalSessions?: number
+  usedSessions?: number
+  /** 업체가 주장한 1일(1회) 단가. 있으면 문서에 반박 문단이 들어간다 (ADR-005). */
+  claimedUnitPrice?: number
+  /** 그 단가를 적용했을 때 덜 받게 되는 금액 */
+  claimedGap?: number
+}
+
+/**
+ * 단가 산정 반박 문단.
+ *
+ * 지식iN 최근 20건 중 5건이 이 다툼이었다(`03-research/2026-08-01-kin-20-case-analysis.md` §4).
+ * 공식은 양쪽이 같고 대입하는 단가만 다르다. 실사례로 최대 11.6배 차이가 관측됐다.
+ *
+ * ⚠️ 단정하지 않는다. 소비자분쟁해결기준은 강행규정이 아니므로(소비자기본법 §16③)
+ *    "무효" 같은 표현 대신 "기준과 맞지 않는다"까지만 쓴다.
+ */
+export function unitPriceRebuttal(calc: CalcData): string | null {
+  if (!calc.claimedUnitPrice || !calc.claimedGap || calc.claimedGap <= 0) return null
+
+  const isSession = calc.productType === 'session'
+  const unit = isSession ? '1회' : '1일'
+  const basis = isSession
+    ? `실제 납부액을 총 계약 횟수로 나눈 금액`
+    : `실제 납부액을 계약 기간으로 나눈 금액`
+
+  return (
+    `한편 귀 업체는 기이용료 산정 시 ${unit}당 ${fmt(calc.claimedUnitPrice)}원을 적용한다고 밝힌 바 있습니다. ` +
+    `그러나 ${GOSI_SHORT}은 이용비율에 따른 정산을 규정하고 있으며, 그 기준은 ${basis}입니다. ` +
+    `귀 업체가 제시한 단가를 적용할 경우 본인이 반환받을 금액은 ${fmt(calc.claimedGap)}원이 감소합니다. ` +
+    `정상가 또는 별도 단품 가격을 기준으로 한 공제는 위 기준의 산정 방식과 부합하지 않으므로 재검토를 요청드립니다.`
+  )
 }
 
 /** `/pdf` 에서 사용자가 직접 입력하는 정보 */
@@ -181,6 +215,11 @@ export const PDF_QUERY_KEYS = [
   'refund',
   'refundReason',
   'isBusinessFault',
+  'productType',
+  'totalSessions',
+  'usedSessions',
+  'claimedUnitPrice',
+  'claimedGap',
   'name',
   'phone',
   'myAddress',
@@ -216,6 +255,16 @@ export function buildPdfQuery(calc: CalcData, info: ClaimantInfo): string {
   if (info.myAddress) q.set('myAddress', info.myAddress)
   if (info.staffName) q.set('staffName', info.staffName)
   if (info.bankAccount) q.set('bankAccount', info.bankAccount)
+  // 횟수제·단가 반박도 값이 있을 때만.
+  if (calc.productType === 'session') {
+    q.set('productType', 'session')
+    q.set('totalSessions', String(calc.totalSessions ?? 0))
+    q.set('usedSessions', String(calc.usedSessions ?? 0))
+  }
+  if (calc.claimedUnitPrice && calc.claimedGap) {
+    q.set('claimedUnitPrice', String(calc.claimedUnitPrice))
+    q.set('claimedGap', String(calc.claimedGap))
+  }
   return q.toString()
 }
 
@@ -282,6 +331,9 @@ export function parseClaimParams(params: URLSearchParams, now: Date = new Date()
   const rawDeadline = str(params, 'deadline') || '7'
   if (rawDeadline !== '7' && rawDeadline !== '14') return { ok: false, error: 'deadline' }
 
+  const claimedUnitPrice = num(params, 'claimedUnitPrice')
+  const claimedGap = num(params, 'claimedGap')
+
   const info: ClaimantInfo = {
     name: str(params, 'name'),
     phone: str(params, 'phone'),
@@ -320,6 +372,15 @@ export function parseClaimParams(params: URLSearchParams, now: Date = new Date()
         refund,
         refundReason,
         isBusinessFault: params.get('isBusinessFault') === 'true',
+        ...(params.get('productType') === 'session' && {
+          productType: 'session' as const,
+          totalSessions: num(params, 'totalSessions') ?? 0,
+          usedSessions: num(params, 'usedSessions') ?? 0,
+        }),
+        // 음수·0 은 반박 문단을 만들지 않으므로 그대로 흘려보내도 안전하다.
+        ...(claimedUnitPrice && claimedGap && claimedGap > 0
+          ? { claimedUnitPrice, claimedGap }
+          : {}),
       },
       info,
       todayIso: todayIsoSeoul(now),

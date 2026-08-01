@@ -4,9 +4,11 @@ interface NumberInputProps {
   value: string
   onChange: (value: string) => void
   error?: string
+  /** 입력칸 오른쪽 단위. 횟수 입력에는 '회' 를 넘긴다. */
+  unit?: string
 }
 
-export default function NumberInput({ label, hint, value, onChange, error }: NumberInputProps) {
+export default function NumberInput({ label, hint, value, onChange, error, unit = '원' }: NumberInputProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9]/g, '')
     onChange(raw)
@@ -28,7 +30,7 @@ export default function NumberInput({ label, hint, value, onChange, error }: Num
           placeholder="0"
           className="flex-1 bg-transparent text-base text-gray-900 outline-none placeholder:text-gray-300"
         />
-        <span className="text-sm text-gray-400 shrink-0">원</span>
+        <span className="text-sm text-gray-400 shrink-0">{unit}</span>
       </div>
       {hint && !error && <p className="text-xs text-gray-400">{hint}</p>}
       {error && (

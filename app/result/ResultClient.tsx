@@ -7,6 +7,7 @@ import ProgressBar from '@/components/ProgressBar'
 import CountUp from '@/components/CountUp'
 import { track } from '@/lib/analytics'
 import FeedbackSheet from '@/components/FeedbackSheet'
+import type { ProductType, ClaimedComparison } from '@/lib/refund'
 
 type RefundReason = 'closure' | 'facility_defect' | 'service_reduction' | 'gym_relocation' | 'price_increase' | 'not_started' | 'injury' | 'pregnancy' | 'relocation' | 'job_change' | 'user_cancel'
 
@@ -25,6 +26,15 @@ interface CalcResult {
   /** 사업자 귀책 여부. true면 위약금을 차감이 아니라 가산한다 (고시 ④체육시설업 4항).
    *  구 URL 호환을 위해 optional. 없으면 false(소비자 귀책)로 본다. */
   isBusinessFault?: boolean
+  /** 2026-08-01 추가. 없으면 'period'(기존 동작). */
+  productType?: ProductType
+  totalSessions?: number
+  usedSessions?: number
+  /** 1일 또는 1회 단가 (고시 기준) */
+  unitPrice?: number
+  /** 업체가 주장한 단가 */
+  claimedUnitPrice?: number | null
+  comparison?: ClaimedComparison | null
 }
 
 const REASON_LABEL: Record<RefundReason, string> = {
@@ -49,6 +59,8 @@ export default function ResultClient({ result }: { result: CalcResult }) {
   const [askExit, setAskExit] = useState(false)
   const isNotStarted = result.refundReason === 'not_started'
   const isPersonal = result.refundReason ? PERSONAL_REASONS.has(result.refundReason) : false
+  const isSession = result.productType === 'session'
+  const cmp = result.comparison ?? null
 
   useEffect(() => {
     track('result_viewed', {
@@ -56,6 +68,10 @@ export default function ResultClient({ result }: { result: CalcResult }) {
       refund_reason: result.refundReason,
       purchase_type: result.purchaseType,
       is_business_fault: isBusinessFault,
+      product_type: result.productType ?? 'period',
+      /** 업체 주장 단가를 입력했고 실제로 차액이 발생한 경우만 true */
+      has_unit_price_dispute: Boolean(cmp),
+      unit_price_gap: cmp?.gap ?? 0,
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -73,6 +89,14 @@ export default function ResultClient({ result }: { result: CalcResult }) {
     refund: String(result.refund),
     isBusinessFault: String(isBusinessFault),
     ...(result.refundReason && { refundReason: result.refundReason }),
+    ...(isSession && {
+      productType: 'session',
+      totalSessions: String(result.totalSessions ?? 0),
+      usedSessions: String(result.usedSessions ?? 0),
+    }),
+    ...(cmp && result.claimedUnitPrice
+      ? { claimedUnitPrice: String(result.claimedUnitPrice), claimedGap: String(cmp.gap) }
+      : {}),
   })
 
   return (
@@ -95,6 +119,60 @@ export default function ResultClient({ result }: { result: CalcResult }) {
         <p className="mt-2 text-xs opacity-70">공정거래위원회 「소비자분쟁해결기준」(체육시설업) 기준</p>
       </div>
 
+      {/*
+        단가 비교 — 업체가 주장한 단가와의 차액.
+
+        지식iN 최근 20건 중 5건이 이 다툼이었다. 공식은 양쪽이 같고 대입하는 단가만 다르다.
+        실사례: 1개월 70,000원 계약에서 2일 이용 시
+                고시 기준 4,667원 vs 업체 주장 하루권 24,000원 → 5.1배
+        (`docs/03-research/2026-08-01-kin-20-case-analysis.md`, ADR-005)
+
+        환급액 카드 바로 아래에 둔다. 이 제품이 파는 것이 금액이 아니라 반박이기 때문이다.
+      */}
+      {cmp && (
+        <section className="mb-4 overflow-hidden rounded-2xl border-2 border-[#EF4444] bg-white shadow-sm">
+          <div className="border-b border-red-100 bg-red-50 px-4 py-3">
+            <h2 className="text-sm font-bold text-[#EF4444]">
+              업체 계산대로면 {fmt(cmp.gap)}원을 덜 받습니다
+            </h2>
+            <p className="mt-0.5 text-xs text-red-500">
+              업체가 말한 단가가 고시 기준의 {cmp.multiple.toFixed(1)}배입니다
+            </p>
+          </div>
+          <div className="divide-y divide-gray-100">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">고시 기준</p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {fmt(result.unitPrice ?? 0)}원 × {isSession ? `${result.usedSessions}회` : `${result.usedDays}일`}
+                  {' = '}{fmt(result.usedFee)}원 차감
+                </p>
+              </div>
+              <span className="tnum text-sm font-bold text-[#2563EB]">{fmt(result.refund)}원</span>
+            </div>
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">업체 주장</p>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {fmt(result.claimedUnitPrice ?? 0)}원 × {isSession ? `${result.usedSessions}회` : `${result.usedDays}일`}
+                  {' = '}{fmt(cmp.claimedUsedFee)}원 차감
+                </p>
+              </div>
+              <span className="tnum text-sm font-bold text-gray-400 line-through">{fmt(cmp.claimedRefund)}원</span>
+            </div>
+            <div className="bg-red-50 px-4 py-3">
+              <p className="text-xs leading-5 text-red-800">
+                <strong>기이용료는 실제 낸 금액을 기준으로 나눕니다.</strong>{' '}
+                {isSession
+                  ? '정가나 할인 전 회당 단가로 차감하는 것은 공정거래위원회 「소비자분쟁해결기준」의 이용비율 산정과 맞지 않습니다.'
+                  : '하루 이용권 가격으로 차감하는 것은 공정거래위원회 「소비자분쟁해결기준」의 이용비율 산정과 맞지 않습니다.'}
+                {' '}이 내용은 아래에서 만드는 청구서에 함께 들어갑니다.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 할인 구매 안내 */}
       {result.purchaseType === 'discounted' && (
         <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-xs text-emerald-800 leading-5">
@@ -113,7 +191,13 @@ export default function ResultClient({ result }: { result: CalcResult }) {
           <Row label="계약금" value={`${fmt(result.contractAmount)}원`} />
           <Row
             label="기이용료"
-            sub={isNotStarted ? '이용 개시 전 → 기이용료 없음' : `${result.usedDays}일 × ${fmt(Math.round(result.monthlyFee / 30))}원/일`}
+            sub={
+              isNotStarted
+                ? '이용 개시 전 → 기이용료 없음'
+                : isSession
+                  ? `${result.usedSessions}회 × ${fmt(result.unitPrice ?? 0)}원/회 (실납부액 ÷ ${result.totalSessions}회)`
+                  : `${result.usedDays}일 × ${fmt(Math.round(result.monthlyFee / 30))}원/일`
+            }
             value={isNotStarted ? '없음' : `−${fmt(result.usedFee)}원`}
             neg={!isNotStarted}
             accent={isNotStarted}

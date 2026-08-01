@@ -1,5 +1,12 @@
 import type { Metadata } from 'next'
 import ResultClient from './ResultClient'
+import {
+  calcRefund,
+  calcClaimedComparison,
+  unitPriceOf,
+  type RefundInput,
+  type ProductType,
+} from '@/lib/refund'
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -15,54 +22,43 @@ function daysBetween(a: string, b: string): number {
 }
 
 /**
- * 위약금 = 이용료의 1/10
- *
- * 공정거래위원회 고시 「소비자분쟁해결기준」(제2025-14호) [별표 Ⅱ] ④체육시설업 비고란:
- * "위약금은 이용료의 1/10에 해당하는 금액을 말함"
- *
- * 부호는 귀책 주체에 따라 달라진다. calcRefund() 참조.
+ * 계산은 전부 `lib/refund.ts` 가 한다. 이 파일은 URL 파라미터를 그 입력 타입으로 옮기기만 한다.
+ * 2026-08-01 이전에는 계산식이 여기 인라인으로 있었다 — PDF·결과 화면·테스트가
+ * 같은 식을 봐야 해서 SSOT로 분리했다.
  */
-function calcPenalty(contractAmount: number): number {
-  return Math.round(contractAmount * 0.1)
-}
-
-/**
- * 반환금액 산정. 위 고시 원문:
- *
- *   4) 사업자의 책임있는 사유로 인한 계약해제
- *      - 이용개시일 이후: 반환금액 = [이용료 - (이용료 × 이용비율)] + 위약금
- *   5) 소비자의 책임있는 사유로 인한 계약해제
- *      - 이용개시일 이후: 반환금액 = [이용료 - (이용료 × 이용비율)] - 위약금
- *
- * 즉 사업자 귀책일 때 위약금은 면제되는 것이 아니라 소비자가 **받는** 금액이다.
- * (2026-07-30 정정. 이전 구현은 사업자 귀책 시 위약금을 0으로 처리해
- *  소비자가 받을 수 있는 금액을 이용료의 10%만큼 과소 산정하고 있었다.)
- */
-function calcRefund(
-  contractAmount: number,
-  usedFee: number,
-  penalty: number,
-  isBusinessFault: boolean,
-): number {
-  const base = contractAmount - usedFee
-  return Math.max(0, isBusinessFault ? base + penalty : base - penalty)
-}
-
 export default async function ResultPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const params = await searchParams
-  const contractAmount = Number(params.contractAmount)
-  const monthlyFee = Number(params.monthlyFee)
-  const startDate = String(params.startDate ?? '')
+  const num = (k: string) => Number(params[k])
+
+  const productType = (params.productType === 'session' ? 'session' : 'period') as ProductType
+  const contractAmount = num('contractAmount')
   const stopDate = String(params.stopDate ?? '')
   const paymentType = String(params.paymentType ?? '')
   const purchaseType = (params.purchaseType === 'discounted' ? 'discounted' : 'regular') as 'regular' | 'discounted'
   const refundReason = (params.refundReason ?? 'user_cancel') as RefundReason
+  const claimedUnitPrice = params.claimedUnitPrice ? num('claimedUnitPrice') : null
 
-  if (!contractAmount || !monthlyFee || !startDate || !stopDate) {
+  const isSession = productType === 'session'
+  const isNotStarted = refundReason === 'not_started'
+  const isBusinessFault = BUSINESS_FAULT_REASONS.includes(refundReason)
+
+  // 기간제 전용. 횟수제에서는 넘어오지 않으므로 0으로 둔다
+  // (PDF 쿼리 직렬화에서 NaN 이 되면 서버가 400 으로 거절한다).
+  const monthlyFee = isSession ? 0 : num('monthlyFee')
+  const startDate = String(params.startDate ?? '')
+  // 횟수제 전용
+  const totalSessions = num('totalSessions')
+  const usedSessionsRaw = params.usedSessions === undefined ? NaN : num('usedSessions')
+
+  const missing = isSession
+    ? !contractAmount || !totalSessions || Number.isNaN(usedSessionsRaw) || !startDate || !stopDate
+    : !contractAmount || !monthlyFee || !startDate || !stopDate
+
+  if (missing) {
     return (
       <main className="flex flex-col items-center justify-center min-h-dvh px-5 text-center">
         <p className="text-lg font-bold text-gray-800">입력 정보가 없습니다</p>
@@ -73,19 +69,27 @@ export default async function ResultPage({
     )
   }
 
-  const isNotStarted = refundReason === 'not_started'
-  const isBusinessFault = BUSINESS_FAULT_REASONS.includes(refundReason)
-  const usedDays = isNotStarted ? 0 : daysBetween(startDate, stopDate)
-  const usedFee = isNotStarted ? 0 : Math.round((monthlyFee / 30) * usedDays)
-  const penalty = calcPenalty(contractAmount)
-  const refund = calcRefund(contractAmount, usedFee, penalty, isBusinessFault)
+  const usedDays = isNotStarted || isSession ? 0 : daysBetween(startDate, stopDate)
+  const usedSessions = isNotStarted ? 0 : Math.max(0, usedSessionsRaw)
+
+  const input: RefundInput = isSession
+    ? { productType: 'session', contractAmount, totalSessions, usedSessions, isBusinessFault }
+    : { productType: 'period', contractAmount, monthlyFee, usedDays, isBusinessFault }
+
+  const { usedFee, penalty, refund } = calcRefund(input)
+  const comparison = calcClaimedComparison(input, claimedUnitPrice)
 
   return (
     <ResultClient
       result={{
+        productType,
         contractAmount, monthlyFee, startDate, stopDate,
         usedDays, usedFee, penalty, refund, paymentType, purchaseType, refundReason,
         isBusinessFault,
+        totalSessions, usedSessions,
+        unitPrice: isSession ? unitPriceOf(contractAmount, totalSessions) : Math.round(monthlyFee / 30),
+        claimedUnitPrice,
+        comparison,
       }}
     />
   )

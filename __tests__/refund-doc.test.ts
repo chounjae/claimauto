@@ -132,3 +132,56 @@ describe('parseClaimParams', () => {
     if (result.ok) expect(result.data.info).toEqual(minimal)
   })
 })
+
+// ── 단가 산정 반박 (ADR-005) ────────────────────────────────────────
+import { unitPriceRebuttal } from '@/lib/refund-doc'
+
+const baseCalc: CalcData = {
+  contractAmount: 70_000,
+  monthlyFee: 70_000,
+  startDate: '2026-07-01',
+  stopDate: '2026-07-03',
+  paymentType: '신용카드 일시불',
+  purchaseType: 'regular',
+  usedDays: 2,
+  usedFee: 4_667,
+  penalty: 7_000,
+  refund: 58_333,
+  refundReason: 'user_cancel',
+}
+
+describe('unitPriceRebuttal', () => {
+  it('주장 단가가 없으면 문단을 만들지 않는다', () => {
+    expect(unitPriceRebuttal(baseCalc)).toBeNull()
+  })
+
+  it('차액이 0 이하면 문단을 만들지 않는다', () => {
+    expect(unitPriceRebuttal({ ...baseCalc, claimedUnitPrice: 12_000, claimedGap: 0 })).toBeNull()
+  })
+
+  it('기간제 — 1일 단가와 차액을 문장에 담는다', () => {
+    const t = unitPriceRebuttal({ ...baseCalc, claimedUnitPrice: 12_000, claimedGap: 19_333 })!
+    expect(t).toContain('1일당 12,000원')
+    expect(t).toContain('19,333원이 감소')
+    expect(t).toContain('계약 기간으로 나눈 금액')
+  })
+
+  it('횟수제 — 1회 단가 기준으로 문장이 바뀐다', () => {
+    const t = unitPriceRebuttal({
+      ...baseCalc,
+      productType: 'session',
+      totalSessions: 30,
+      usedSessions: 15,
+      claimedUnitPrice: 55_000,
+      claimedGap: 75_000,
+    })!
+    expect(t).toContain('1회당 55,000원')
+    expect(t).toContain('총 계약 횟수로 나눈 금액')
+  })
+
+  it('강행규정·무효 같은 단정 표현을 쓰지 않는다 (소비자기본법 §16③)', () => {
+    const t = unitPriceRebuttal({ ...baseCalc, claimedUnitPrice: 12_000, claimedGap: 19_333 })!
+    expect(t).not.toContain('강행규정')
+    expect(t).not.toContain('무효')
+  })
+})

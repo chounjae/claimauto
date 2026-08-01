@@ -21,6 +21,7 @@ import {
   formatDate,
   REASON_BODY,
   REASON_LABEL,
+  unitPriceRebuttal,
   type ClaimDocData,
 } from '@/lib/refund-doc'
 import { PDF_FONT_FAMILY, registerPdfFonts } from './fonts'
@@ -217,8 +218,11 @@ export function ClaimDocument({ calc, info, todayIso }: ClaimDocData) {
   const today = formatDate(todayIso)
   const deadlineDate = addDays(todayIso, Number(info.deadline))
   const dailyRate = Math.round(calc.monthlyFee / 30)
+  /** 횟수제 회당 단가. 실납부액 ÷ 총횟수 — 정가가 아니다. */
+  const sessionRate = calc.totalSessions ? Math.round(calc.contractAmount / calc.totalSessions) : 0
   const isBusinessFault = calc.isBusinessFault ?? false
   const reason = calc.refundReason
+  const rebuttal = unitPriceRebuttal(calc)
 
   return (
     <Document
@@ -267,12 +271,25 @@ export function ClaimDocument({ calc, info, todayIso }: ClaimDocData) {
           원만한 처리를 부탁드립니다.
         </Text>
 
+        {/*
+          단가 산정 반박. 업체가 주장한 단가를 입력한 경우에만 들어간다.
+          지식iN 실사례 20건 중 5건이 이 다툼이었다 (ADR-005).
+        */}
+        {rebuttal ? <Text style={s.intro}>{rebuttal}</Text> : null}
+
         <Section num="1" title="계약 내용">
           <DocRow label="계약 업체" value={info.gymName} />
           <DocRow label="업체 주소" value={info.gymAddress} />
           <DocRow label="계약 시작일" value={formatDate(calc.startDate)} />
           <DocRow label="중도해지 요청일" value={formatDate(calc.stopDate)} />
-          <DocRow label="실 이용 일수" value={`${calc.usedDays}일`} />
+          {calc.productType === 'session' ? (
+            <DocRow
+              label="이용 횟수"
+              value={`총 ${calc.totalSessions ?? 0}회 중 ${calc.usedSessions ?? 0}회 이용`}
+            />
+          ) : (
+            <DocRow label="실 이용 일수" value={`${calc.usedDays}일`} />
+          )}
           <DocRow label="납부 금액" value={`${fmt(calc.contractAmount)}원`} />
           <DocRow label="납부 방식" value={calc.paymentType} last={!reason} />
           {reason ? <DocRow label="환불 사유" value={REASON_LABEL[reason]} last /> : null}
@@ -295,7 +312,9 @@ export function ClaimDocument({ calc, info, todayIso }: ClaimDocData) {
               <View style={s.calcLabel}>
                 <Text>② 기이용료 차감</Text>
                 <Text style={s.calcSub}>
-                  {fmt(calc.monthlyFee)}원 ÷ 30일 × {calc.usedDays}일 ({fmt(dailyRate)}원/일)
+                  {calc.productType === 'session'
+                    ? `${fmt(calc.contractAmount)}원 ÷ ${calc.totalSessions ?? 0}회 × ${calc.usedSessions ?? 0}회 (${fmt(sessionRate)}원/회)`
+                    : `${fmt(calc.monthlyFee)}원 ÷ 30일 × ${calc.usedDays}일 (${fmt(dailyRate)}원/일)`}
                 </Text>
               </View>
               <Text style={[s.calcAmount, { color: COLOR.red }]}>−{fmt(calc.usedFee)}원</Text>
